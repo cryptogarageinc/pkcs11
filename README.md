@@ -62,6 +62,10 @@ To expose PKCS#11 keys using the
 [crypto.Signer interface](https://golang.org/pkg/crypto/#Signer),
 please see [github.com/thalesignite/crypto11](https://github.com/thalesignite/crypto11).
 
+## BIP32 Master and Child Key Pair Derivation
+
+See [bip32.go](bip32.go) and [bip32_test.go](bip32_test.go) to use BIP32 master and child key pair derivation in a SafeNet Luna HSM.
+
 # TODO
 
 * Fix/double check endian stuff, see types.go NewAttribute()
