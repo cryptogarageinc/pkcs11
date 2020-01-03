@@ -51,6 +51,7 @@ func deriveMasterKeyPair(p *Ctx, session SessionHandle, seed ObjectHandle) (Obje
 
 	publicTemplate := []*Attribute{
 		NewAttribute(CKA_TOKEN, true),
+		NewAttribute(CKA_KEY_TYPE, CKK_BIP32),
 		NewAttribute(CKA_PRIVATE, true),
 		NewAttribute(CKA_ENCRYPT, true),
 		NewAttribute(CKA_VERIFY, true),
@@ -60,6 +61,7 @@ func deriveMasterKeyPair(p *Ctx, session SessionHandle, seed ObjectHandle) (Obje
 
 	privateTemplate := []*Attribute{
 		NewAttribute(CKA_TOKEN, true),
+		NewAttribute(CKA_KEY_TYPE, CKK_BIP32),
 		NewAttribute(CKA_PRIVATE, true),
 		NewAttribute(CKA_DECRYPT, true),
 		NewAttribute(CKA_SIGN, true),
@@ -75,6 +77,7 @@ func deriveChildKeyPair(p *Ctx, session SessionHandle, masterPrivate ObjectHandl
 
 	publicTemplate := []*Attribute{
 		NewAttribute(CKA_TOKEN, false),
+		NewAttribute(CKA_KEY_TYPE, CKK_BIP32),
 		NewAttribute(CKA_PRIVATE, true),
 		NewAttribute(CKA_ENCRYPT, true),
 		NewAttribute(CKA_VERIFY, true),
@@ -84,6 +87,7 @@ func deriveChildKeyPair(p *Ctx, session SessionHandle, masterPrivate ObjectHandl
 
 	privateTemplate := []*Attribute{
 		NewAttribute(CKA_TOKEN, false),
+		NewAttribute(CKA_KEY_TYPE, CKK_BIP32),
 		NewAttribute(CKA_PRIVATE, true),
 		NewAttribute(CKA_DECRYPT, true),
 		NewAttribute(CKA_SIGN, true),

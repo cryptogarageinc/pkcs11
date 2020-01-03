@@ -102,6 +102,9 @@ CK_RV DeriveBIP32Child(struct ctx * c, CK_SESSION_HANDLE session,
 */
 import "C"
 
+// CKK_BIP32 should be assigned to the CKA_KEY_TYPE attribute of templates for derived keys
+const CKK_BIP32 = CKK_VENDOR_DEFINED + 0x14
+
 func (c *Ctx) DeriveBIP32MasterKeys(sh SessionHandle, basekey ObjectHandle, publicAttr []*Attribute, privateAttr []*Attribute) (ObjectHandle, ObjectHandle, error) {
   var publicKey C.CK_OBJECT_HANDLE
   var privateKey C.CK_OBJECT_HANDLE
