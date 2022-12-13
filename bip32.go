@@ -10,12 +10,20 @@ package pkcs11
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ltdl.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include "pkcs11go.h"
 
 struct ctx {
-	lt_dlhandle handle;
+#ifdef _WIN32
+	HINSTANCE handle;
+#else
+	void *handle;
+#endif
 	CK_FUNCTION_LIST_PTR sym;
 };
 
