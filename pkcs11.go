@@ -12,47 +12,83 @@ package pkcs11
 
 /*
 #cgo windows CFLAGS: -DPACKED_STRUCTURES
-#cgo windows LDFLAGS: -lltdl
-#cgo linux LDFLAGS: -lltdl -ldl
-#cgo darwin CFLAGS: -I/usr/local/share/libtool
-#cgo darwin LDFLAGS: -lltdl -L/usr/local/lib/
-#cgo openbsd CFLAGS: -I/usr/local/include/
-#cgo openbsd LDFLAGS: -lltdl -L/usr/local/lib/
-#cgo freebsd CFLAGS: -I/usr/local/include/
-#cgo freebsd LDFLAGS: -lltdl -L/usr/local/lib/
-#cgo LDFLAGS: -lltdl
+#cgo windows LDFLAGS:
+#cgo linux LDFLAGS: -ldl
+#cgo darwin LDFLAGS: -ldl -L/usr/local/lib/
+#cgo openbsd LDFLAGS: -ldl -L/usr/local/lib/
+#cgo freebsd LDFLAGS: -ldl -L/usr/local/lib/
+#cgo LDFLAGS: -ldl
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ltdl.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
+
 #include "pkcs11go.h"
 
 struct ctx {
-	lt_dlhandle handle;
+#ifdef _WIN32
+	HINSTANCE handle;
+#else
+	void *handle;
+#endif
 	CK_FUNCTION_LIST_PTR sym;
 };
 
 // New initializes a ctx and fills the symbol table.
 struct ctx *New(const char *module)
 {
-	if (lt_dlinit() != 0) {
-		return NULL;
-	}
 	CK_C_GetFunctionList list;
 	struct ctx *c = calloc(1, sizeof(struct ctx));
-	c->handle = lt_dlopen(module);
+#ifdef _WIN32
+	c->handle = LoadLibrary(TEXT(module));
 	if (c->handle == NULL) {
 		free(c);
+		fprintf(stderr, "%s not found in linklist of LD_LIBRARY_PATH\n", module);
 		return NULL;
 	}
-	list = (CK_C_GetFunctionList) lt_dlsym(c->handle, "C_GetFunctionList");
+	list = (CK_C_GetFunctionList) (intptr_t) GetProcAddress(c->handle, "C_GetFunctionList"); 
 	if (list == NULL) {
+		FreeLibrary(c->handle);
 		free(c);
+		fprintf(stderr, "C_GetFunctionList() not found in module %s\n", module);
 		return NULL;
 	}
-	list(&c->sym);
+	CK_RV ret = list(&c->sym);
+	if (ret != CKR_OK) {
+		FreeLibrary(c->handle);
+		free(c);
+		fprintf(stderr, "C_GetFunctionList() did not initialize correctly\n");
+		return NULL;
+	}
+#else
+	c->handle = dlopen(module, RTLD_LAZY);
+	if (c->handle == NULL) {
+		free(c);
+		printf("%s not found in linklist of LD_LIBRARY_PATH\n", module);
+		return NULL;
+	}
+	list = (CK_C_GetFunctionList) dlsym(c->handle, "C_GetFunctionList");
+	if (list == NULL) {
+		dlclose(c->handle);
+		free(c);
+		printf("C_GetFunctionList() not found in module %s\n", module);
+		return NULL;
+	}
+	CK_RV ret = list(&c->sym);
+	if (ret != CKR_OK) {
+		dlclose(c->handle);
+		free(c);
+		printf("C_GetFunctionList() did not initialize correctly\n");
+		return NULL;
+	}
+#endif
 	return c;
 }
 
@@ -65,10 +101,15 @@ void Destroy(struct ctx *c)
 	if (c->handle == NULL) {
 		return;
 	}
-	if (lt_dlclose(c->handle) < 0) {
+#ifdef _WIN32
+	if (!FreeLibrary(c->handle)) {
 		return;
 	}
-	lt_dlexit();
+#else
+	if (dlclose(c->handle) < 0) {
+		return;
+	}
+#endif
 	free(c);
 }
 
