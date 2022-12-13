@@ -68,7 +68,7 @@ struct ctx *New(const char *module)
 		return NULL;
 	}
 #else
-	c->handle = dlopen(module);
+	c->handle = dlopen(module, RTLD_LAZY);
 	if (c->handle == NULL) {
 		free(c);
 		printf("%s not found in linklist of LD_LIBRARY_PATH\n", module);

@@ -23,9 +23,13 @@ This test supports the following environment variables:
 * SOFTHSM_PRIVKEYLABEL
 * SOFTHSM_PIN
 */
+var (
+	// libPath          = "/usr/lib/softhsm/libsofthsm.so"
+	libPath          = "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
+)
 
 func setenv(t *testing.T) *Ctx {
-	lib := "/usr/lib/softhsm/libsofthsm.so"
+	lib := libPath
 	if x := os.Getenv("SOFTHSM_LIB"); x != "" {
 		lib = x
 	}
@@ -41,7 +45,7 @@ func TestSetenv(t *testing.T) {
 	wd, _ := os.Getwd()
 	os.Setenv("SOFTHSM_CONF", wd+"/softhsm.conf")
 
-	lib := "/usr/lib/softhsm/libsofthsm.so"
+	lib := libPath
 	if x := os.Getenv("SOFTHSM_LIB"); x != "" {
 		lib = x
 	}
@@ -477,7 +481,7 @@ func testEncryptUpdate(t *testing.T, p *Ctx, session SessionHandle, key ObjectHa
 // ExampleSign shows how to sign some data with a private key.
 // Note: error correction is not implemented in this example.
 func ExampleCtx_Sign() {
-	lib := "/usr/lib/softhsm/libsofthsm.so"
+	lib := libPath
 	if x := os.Getenv("SOFTHSM_LIB"); x != "" {
 		lib = x
 	}

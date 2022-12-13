@@ -24,7 +24,8 @@ import (
 )
 
 var (
-	module          = "/usr/lib/softhsm/libsofthsm.so"
+	// module          = "/usr/lib/softhsm/libsofthsm.so"
+	module          = "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
 	tokenLabel      = "softhsm token"
 	privateKeyLabel = "my key"
 	pin             = "1234"

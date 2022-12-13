@@ -198,6 +198,9 @@ func signVerify(t *testing.T, p *Ctx, session SessionHandle, public, private Obj
 }
 
 func TestBIP32DeriveSignVerify(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testing in short mode")
+	}
 
 	p, session := setup(t)
 	defer teardown(p, session)
@@ -233,6 +236,10 @@ func TestBIP32DeriveSignVerify(t *testing.T) {
 }
 
 func TestBIP32VectorInjectDeriveSignVerify(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testing in short mode")
+	}
+
 	//https://en.bitcoin.it/wiki/BIP_0032_TestVectors
 	vector := [][]string{
 		{"000102030405060708090a0b0c0d0e0f", "m/0'", "035a784662a4a20a65bf6aab9ae98a6c068a81c52e4b032c0fb5400c706cfccc56"},
