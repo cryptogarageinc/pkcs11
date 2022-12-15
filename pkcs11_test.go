@@ -25,7 +25,7 @@ This test supports the following environment variables:
 */
 var (
 	// libPath          = "/usr/lib/softhsm/libsofthsm.so"
-	libPath          = "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
+	libPath = "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
 )
 
 func setenv(t *testing.T) *Ctx {
@@ -54,7 +54,6 @@ func TestSetenv(t *testing.T) {
 		t.Fatal("Failed to init pkcs11")
 	}
 	p.Destroy()
-	return
 }
 
 func getSession(p *Ctx, t *testing.T) SessionHandle {
@@ -210,7 +209,7 @@ func TestDigestUpdate(t *testing.T) {
 	})
 	t.Run("Empty", func(t *testing.T) {
 		// sha1sum < /dev/null
-		testDigestUpdate(t, p, session, [][]byte{[]byte{}}, "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+		testDigestUpdate(t, p, session, [][]byte{{}}, "da39a3ee5e6b4b0d3255bfef95601890afd80709")
 	})
 }
 
@@ -239,6 +238,7 @@ func testDigestUpdate(t *testing.T, p *Ctx, session SessionHandle, inputs [][]by
 /*
 Purpose: Generate RSA keypair with a given name and persistence.
 Inputs: test object
+
 	context
 	session handle
 	tokenLabel: string to set as the token labels
@@ -246,6 +246,7 @@ Inputs: test object
 			session based or persistent. If false, the
 			token will not be saved in the HSM and is
 			destroyed upon termination of the session.
+
 Outputs: creates persistent or ephemeral tokens within the HSM.
 Returns: object handles for public and private keys. Fatal on error.
 */
@@ -310,12 +311,16 @@ func TestSign(t *testing.T) {
 	}
 }
 
-/* destroyObject
+/*
+	destroyObject
+
 Purpose: destroy and object from the HSM
 Inputs: test handle
+
 	session handle
 	searchToken: String containing the token label to search for.
 	class: Key type (CKO_PRIVATE_KEY or CKO_PUBLIC_KEY) to remove.
+
 Outputs: removes object from HSM
 Returns: Fatal error on failure.
 */
@@ -433,7 +438,7 @@ func testEncrypt(t *testing.T, p *Ctx, session SessionHandle, key ObjectHandle, 
 	if decrypted, err = p.Decrypt(session, ciphertext); err != nil {
 		t.Fatalf("Decrypt: %s\n", err)
 	}
-	if bytes.Compare(plaintext, decrypted) != 0 {
+	if !bytes.Equal(plaintext, decrypted) {
 		t.Fatalf("Plaintext mismatch")
 	}
 }
@@ -473,7 +478,7 @@ func testEncryptUpdate(t *testing.T, p *Ctx, session SessionHandle, key ObjectHa
 		t.Fatalf("DecryptFinal: %s\n", err)
 	}
 	decrypted = append(decrypted, output...)
-	if bytes.Compare(plaintext, decrypted) != 0 {
+	if !bytes.Equal(plaintext, decrypted) {
 		t.Fatalf("Plaintext mismatch")
 	}
 }

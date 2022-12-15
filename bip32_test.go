@@ -282,7 +282,7 @@ func TestBIP32VectorInjectDeriveSignVerify(t *testing.T) {
 
 		ecPoint = ecPoint[1:33]
 		expected := public[1:]
-		if bytes.Compare(ecPoint, expected) != 0 {
+		if !bytes.Equal(ecPoint, expected) {
 			t.Fatalf("ecPoint was %s.  Expected %s.", hex.EncodeToString(ecPoint), hex.EncodeToString(expected))
 		}
 

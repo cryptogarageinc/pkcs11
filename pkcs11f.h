@@ -872,6 +872,22 @@ CK_PKCS11_FUNCTION_INFO(C_DeriveKey)
 #endif
 
 
+/* CA_OpenSession opens a session between an application and a
+ * token and partition.
+ */
+CK_PKCS11_FUNCTION_INFO(CA_OpenSession)
+#ifdef CK_NEED_ARG_LIST
+(
+  CK_SLOT_ID            slotID,        /* the slot's ID */
+  CK_ULONG              partitionID,   /* the partition's ID */
+  CK_FLAGS              flags,         /* from CK_SESSION_INFO */
+  CK_VOID_PTR           pApplication,  /* passed to callback */
+  CK_NOTIFY             Notify,        /* callback function */
+  CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
+);
+#endif
+
+
 
 /* Random number generation */
 

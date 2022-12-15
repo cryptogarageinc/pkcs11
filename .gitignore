@@ -1,3 +1,6 @@
 tags
 test_db/*/generation
 test_db/*/*.lock
+.bin/
+apis/pkcs11/test_db/*/generation
+apis/pkcs11/test_db/*/*.lock
