@@ -17,7 +17,6 @@ package pkcs11
 #cgo darwin LDFLAGS: -ldl -L/usr/local/lib/
 #cgo openbsd LDFLAGS: -ldl -L/usr/local/lib/
 #cgo freebsd LDFLAGS: -ldl -L/usr/local/lib/
-#cgo LDFLAGS: -ldl
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,7 +52,7 @@ struct ctx *New(const char *module)
 		fprintf(stderr, "%s not found in linklist of LD_LIBRARY_PATH\n", module);
 		return NULL;
 	}
-	list = (CK_C_GetFunctionList) (intptr_t) GetProcAddress(c->handle, "C_GetFunctionList"); 
+	list = (CK_C_GetFunctionList) (intptr_t) GetProcAddress(c->handle, "C_GetFunctionList");
 	if (list == NULL) {
 		FreeLibrary(c->handle);
 		free(c);
@@ -781,9 +780,10 @@ static inline CK_VOID_PTR getAttributePval(CK_ATTRIBUTE_PTR a)
 
 */
 import "C"
-import "strings"
-
-import "unsafe"
+import (
+	"strings"
+	"unsafe"
+)
 
 // Ctx contains the current pkcs11 context.
 type Ctx struct {

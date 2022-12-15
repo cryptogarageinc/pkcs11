@@ -220,7 +220,8 @@ func testParallel(t *testing.T) {
 		go func() {
 			result, err := pool.sign([]byte("hi"))
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				// t.Fatal(err)
 			}
 			output <- result
 		}()

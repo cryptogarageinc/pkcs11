@@ -107,6 +107,15 @@ CK_RV DeriveBIP32Child(struct ctx * c, CK_SESSION_HANDLE session,
   return e;
 }
 
+CK_RV OpenSessionWithPartition(struct ctx * c, CK_ULONG slotID, CK_ULONG partitionID,
+      CK_ULONG flags, CK_SESSION_HANDLE_PTR session)
+{
+	CK_RV e =
+	    c->sym->CA_OpenSession((CK_SLOT_ID) slotID, partitionID, (CK_FLAGS) flags,
+          NULL, NULL, session);
+	return e;
+}
+
 */
 import "C"
 
@@ -114,28 +123,35 @@ import "C"
 const CKK_BIP32 = CKK_VENDOR_DEFINED + 0x14
 
 func (c *Ctx) DeriveBIP32MasterKeys(sh SessionHandle, basekey ObjectHandle, publicAttr []*Attribute, privateAttr []*Attribute) (ObjectHandle, ObjectHandle, error) {
-  var publicKey C.CK_OBJECT_HANDLE
-  var privateKey C.CK_OBJECT_HANDLE
-  publicAttrArena, publicAttrC, publicAttrLen := cAttributeList(publicAttr)
-  defer publicAttrArena.Free()
-  privateAttrArena, privateAttrC, privateAttrLen := cAttributeList(privateAttr)
-  defer privateAttrArena.Free()
-  e := C.DeriveBIP32Master(c.ctx, C.CK_SESSION_HANDLE(sh), C.CK_OBJECT_HANDLE(basekey), publicAttrC, publicAttrLen, privateAttrC, privateAttrLen, &publicKey, &privateKey)
-  return ObjectHandle(publicKey), ObjectHandle(privateKey), toError(e)
+	var publicKey C.CK_OBJECT_HANDLE
+	var privateKey C.CK_OBJECT_HANDLE
+	publicAttrArena, publicAttrC, publicAttrLen := cAttributeList(publicAttr)
+	defer publicAttrArena.Free()
+	privateAttrArena, privateAttrC, privateAttrLen := cAttributeList(privateAttr)
+	defer privateAttrArena.Free()
+	e := C.DeriveBIP32Master(c.ctx, C.CK_SESSION_HANDLE(sh), C.CK_OBJECT_HANDLE(basekey), publicAttrC, publicAttrLen, privateAttrC, privateAttrLen, &publicKey, &privateKey)
+	return ObjectHandle(publicKey), ObjectHandle(privateKey), toError(e)
 }
 
 func (c *Ctx) DeriveBIP32ChildKeys(sh SessionHandle, basekey ObjectHandle, publicAttr []*Attribute, privateAttr []*Attribute, path []uint32) (ObjectHandle, ObjectHandle, uint, error) {
-  var publicKey C.CK_OBJECT_HANDLE
-  var privateKey C.CK_OBJECT_HANDLE
-  var pathErrorIndex C.CK_ULONG
-  publicAttrArena, publicAttrC, publicAttrLen := cAttributeList(publicAttr)
-  defer publicAttrArena.Free()
-  privateAttrArena, privateAttrC, privateAttrLen := cAttributeList(privateAttr)
-  defer privateAttrArena.Free()
-  cPath := make([]C.CK_ULONG, len(path))
-  for i := 0; i < len(path); i++ {
-    cPath[i] = C.CK_ULONG(path[i])
-  }
-  e := C.DeriveBIP32Child(c.ctx, C.CK_SESSION_HANDLE(sh), C.CK_OBJECT_HANDLE(basekey), publicAttrC, publicAttrLen, privateAttrC, privateAttrLen, &cPath[0], C.CK_ULONG(len(path)), &publicKey, &privateKey, &pathErrorIndex)
-  return ObjectHandle(publicKey), ObjectHandle(privateKey), uint(pathErrorIndex), toError(e)
+	var publicKey C.CK_OBJECT_HANDLE
+	var privateKey C.CK_OBJECT_HANDLE
+	var pathErrorIndex C.CK_ULONG
+	publicAttrArena, publicAttrC, publicAttrLen := cAttributeList(publicAttr)
+	defer publicAttrArena.Free()
+	privateAttrArena, privateAttrC, privateAttrLen := cAttributeList(privateAttr)
+	defer privateAttrArena.Free()
+	cPath := make([]C.CK_ULONG, len(path))
+	for i := 0; i < len(path); i++ {
+		cPath[i] = C.CK_ULONG(path[i])
+	}
+	e := C.DeriveBIP32Child(c.ctx, C.CK_SESSION_HANDLE(sh), C.CK_OBJECT_HANDLE(basekey), publicAttrC, publicAttrLen, privateAttrC, privateAttrLen, &cPath[0], C.CK_ULONG(len(path)), &publicKey, &privateKey, &pathErrorIndex)
+	return ObjectHandle(publicKey), ObjectHandle(privateKey), uint(pathErrorIndex), toError(e)
+}
+
+// OpenSessionWithPartition opens a session between an application and a token and a partition.
+func (c *Ctx) OpenSessionWithPartition(slotID uint, partitionID uint, flags uint) (SessionHandle, error) {
+	var s C.CK_SESSION_HANDLE
+	e := C.OpenSessionWithPartition(c.ctx, C.CK_ULONG(slotID), C.CK_ULONG(partitionID), C.CK_ULONG(flags), C.CK_SESSION_HANDLE_PTR(&s))
+	return SessionHandle(s), toError(e)
 }
