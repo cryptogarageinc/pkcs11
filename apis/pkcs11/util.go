@@ -12,9 +12,7 @@ const hardenedNum = 0x80000000
 
 func ConvertBip32PathFromString(pathStr string) (path []uint32, err error) {
 	pathStr = strings.TrimSpace(strings.ToLower(pathStr))
-	if strings.HasPrefix(pathStr, "m/") {
-		pathStr = pathStr[2:]
-	}
+	pathStr = strings.TrimPrefix(pathStr, "m/")
 	split := strings.Split(pathStr, "/")
 	path = make([]uint32, len(split))
 	for i, index := range split {

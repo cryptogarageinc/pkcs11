@@ -37,6 +37,18 @@ const (
 	testHash = "2a67f03e63a6a422125878b40b82da593be8d4efaafe88ee528af6e5a9955c6e"
 )
 
+func init() {
+	if x := os.Getenv("SOFTHSM_LIB"); x != "" {
+		libPath = x
+	}
+	if x := os.Getenv("SOFTHSM_PIN"); x != "" {
+		pin = x
+	}
+	wd, _ := os.Getwd()
+	os.Setenv("SOFTHSM_CONF", wd+"/softhsm.conf")
+	os.Setenv("SOFTHSM2_CONF", wd+"/softhsm2.conf")
+}
+
 func TestPkcs11Api(t *testing.T) {
 	lib := libPath
 	if x := os.Getenv("SOFTHSM_LIB"); x != "" {
@@ -52,12 +64,10 @@ func TestPkcs11Api(t *testing.T) {
 	ctx := context.Background()
 	err := api.Initialize(ctx)
 	assert.NoError(t, err)
-	dumpError(err)
 	defer api.Finalize(ctx)
 
 	session, err := api.OpenSession(ctx, pin)
 	assert.NoError(t, err)
-	dumpError(err)
 	defer api.CloseSession(ctx, session)
 
 	// create key
@@ -66,17 +76,16 @@ func TestPkcs11Api(t *testing.T) {
 		// (not bip32 case)
 		pkHdl, skHdl, err = generateKeyPair(p, session, "test-pk", "test-sk")
 		assert.NoError(t, err)
-		dumpError(err)
 		assert.NotEqual(t, pkHdl, 0)
 		assert.NotEqual(t, skHdl, 0)
 
 		skHdl2, err := api.FindKeyByLabel(ctx, session, skLabel)
 		assert.NoError(t, err)
-		dumpError(err)
 		assert.Equal(t, skHdl, skHdl2)
 	} else {
 		// BIP32
 		// TODO: need implement
+		t.Skip("not implement")
 	}
 
 	// sign key
@@ -84,7 +93,6 @@ func TestPkcs11Api(t *testing.T) {
 	assert.NoError(t, err)
 	sig, err := api.GenerateSignature(ctx, session, skHdl, MechanismTypeEcdsa, testHashByte)
 	assert.NoError(t, err)
-	dumpError(err)
 	sigStr := hex.EncodeToString(sig[:])
 	assert.NotEqual(t, sigStr,
 		"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
@@ -93,17 +101,10 @@ func TestPkcs11Api(t *testing.T) {
 	// get pubkey
 	pk, err := api.GetPublicKey(ctx, session, pkHdl)
 	assert.NoError(t, err)
-	dumpError(err)
 	pkStr := hex.EncodeToString(pk[:])
 	fmt.Printf("pk: %s\n", pkStr)
 	assert.NotEqual(t, pkStr,
 		"04000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-}
-
-func dumpError(err error) {
-	if err != nil {
-		fmt.Printf("error: %+v\n", err)
-	}
 }
 
 func generateKeyPair(
@@ -113,8 +114,6 @@ func generateKeyPair(
 	skLabel string,
 ) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
 	publicKeyTemplate := []*pkcs11.Attribute{
-		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
-		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_RSA),
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, false),
 		pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
 		pkcs11.NewAttribute(pkcs11.CKA_EC_PARAMS, CurveSecp256k1),
@@ -122,10 +121,9 @@ func generateKeyPair(
 	}
 	privateKeyTemplate := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, false),
+		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
 		pkcs11.NewAttribute(pkcs11.CKA_LABEL, skLabel),
-		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
-		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
 	}
 	pk, sk, err := p.GenerateKeyPair(session,
 		[]*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_EC_KEY_PAIR_GEN, nil)},

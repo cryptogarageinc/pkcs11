@@ -1,0 +1,19 @@
+service:
+  golangci-lint-version: 1.50.1
+run:
+  deadline: 30m
+  skip-dirs:
+    - .bin
+    - cover
+    - test_db
+  modules-download-mode: readonly
+
+issues:
+  exclude-use-default: false
+
+linters:
+  enable:
+    - exportloopref
+    - goimports
+  disable:
+    - structcheck

@@ -36,19 +36,19 @@ func TestConvertBip32PathFromString(t *testing.T) {
 	assert.Equal(t, path[3], uint32(0))
 	assert.Equal(t, path[4], uint32(10))
 
-	path, err = ConvertBip32PathFromString("m/0/0x80000000/1")
+	_, err = ConvertBip32PathFromString("m/0/0x80000000/1")
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "bip32 range over. val=0x80000000, depth=1")
 
-	path, err = ConvertBip32PathFromString("m///")
+	_, err = ConvertBip32PathFromString("m///")
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "bip32 empty value. val=, depth=0")
 
-	path, err = ConvertBip32PathFromString("-1")
+	_, err = ConvertBip32PathFromString("-1")
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "strconv.ParseUint: parsing \"-1\": invalid syntax")
 
-	path, err = ConvertBip32PathFromString("abcdefgh")
+	_, err = ConvertBip32PathFromString("abcdefgh")
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "strconv.ParseUint: parsing \"abcdefg\": invalid syntax")
 

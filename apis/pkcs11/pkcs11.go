@@ -59,6 +59,7 @@ func NewPkcs11(ctx *pkcs11.Ctx, namedCurveOid []byte) *pkcs11Api {
 	return &pkcs11Api{
 		pkcs11Obj:            ctx,
 		namedCurveOid:        namedCurveOid,
+		sessionCheckChMap:    make(map[pkcs11.SessionHandle]chan struct{}),
 		sessionCheckDuration: time.Hour,
 	}
 }
@@ -139,7 +140,7 @@ func (p *pkcs11Api) FindKeyByLabel(
 	label string,
 ) (key pkcs11.ObjectHandle, err error) {
 	template := []*pkcs11.Attribute{pkcs11.NewAttribute(pkcs11.CKA_LABEL, label)}
-	handles, err := p.findAttr(session, template, 2)
+	handles, err := p.findAttr(ctx, session, template, 2)
 	if err != nil {
 		logging(ctx, LogError, "FindKeyByLabel.findAttr", err, "")
 		return 0, err
@@ -275,13 +276,13 @@ func (p *pkcs11Api) openSession(
 		session, err = p.pkcs11Obj.OpenSession(slotID, pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
 		if err != nil {
 			logging(ctx, LogError, "openSession.OpenSession", err, "")
-			return 0, err
+			return 0, errors.Wrap(err, "openSession failed")
 		}
 	} else {
 		session, err = p.pkcs11Obj.OpenSessionWithPartition(slotID, *partitionID, pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
 		if err != nil {
 			logging(ctx, LogError, "openSession.OpenSession", err, "")
-			return 0, err
+			return 0, errors.Wrap(err, "openSession failed")
 		}
 	}
 	if err = p.pkcs11Obj.Login(session, pkcs11.CKU_USER, pin); err != nil {
@@ -290,7 +291,7 @@ func (p *pkcs11Api) openSession(
 		if tmpErr != nil {
 			logging(ctx, LogError, "openSession.CloseSession", tmpErr, "")
 		}
-		return 0, err
+		return 0, errors.Wrap(err, "openSession failed")
 	}
 
 	ch := make(chan struct{}, 1)
@@ -317,6 +318,7 @@ func (p *pkcs11Api) openSession(
 }
 
 func (p *pkcs11Api) findAttr(
+	ctx context.Context,
 	session pkcs11.SessionHandle,
 	template []*pkcs11.Attribute,
 	maxNum int,
@@ -326,7 +328,10 @@ func (p *pkcs11Api) findAttr(
 	}
 	obj, _, err := p.pkcs11Obj.FindObjects(session, maxNum)
 	if err != nil {
-		p.pkcs11Obj.FindObjectsFinal(session)
+		tmpErr := p.pkcs11Obj.FindObjectsFinal(session)
+		if tmpErr != nil {
+			logging(ctx, LogError, "openSession.CloseSession", tmpErr, "")
+		}
 		return nil, err
 	}
 	if err := p.pkcs11Obj.FindObjectsFinal(session); err != nil {
