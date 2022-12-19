@@ -47,14 +47,22 @@ func init() {
 	wd, _ := os.Getwd()
 	os.Setenv("SOFTHSM_CONF", wd+"/softhsm.conf")
 	os.Setenv("SOFTHSM2_CONF", wd+"/softhsm2.conf")
+
+	SetContextLogger(func(_ context.Context, level LogLevel, message string) {
+		fmt.Printf("[%s] %s\n", level, message)
+	})
 }
 
-func TestPkcs11Api(t *testing.T) {
+func getPkcs11() *pkcs11.Ctx {
 	lib := libPath
 	if x := os.Getenv("SOFTHSM_LIB"); x != "" {
 		lib = x
 	}
-	p := pkcs11.New(lib)
+	return pkcs11.New(lib)
+}
+
+func TestPkcs11Api(t *testing.T) {
+	p := getPkcs11()
 	if p == nil {
 		t.Fatal("Failed to init pkcs11")
 	}
@@ -93,7 +101,7 @@ func TestPkcs11Api(t *testing.T) {
 	assert.NoError(t, err)
 	sig, err := api.GenerateSignature(ctx, session, skHdl, MechanismTypeEcdsa, testHashByte)
 	assert.NoError(t, err)
-	sigStr := hex.EncodeToString(sig[:])
+	sigStr := sig.ToHex()
 	assert.NotEqual(t, sigStr,
 		"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 	fmt.Printf("sig: %s\n", sigStr)
@@ -101,10 +109,64 @@ func TestPkcs11Api(t *testing.T) {
 	// get pubkey
 	pk, err := api.GetPublicKey(ctx, session, pkHdl)
 	assert.NoError(t, err)
-	pkStr := hex.EncodeToString(pk[:])
+	pkStr := pk.ToHex()
 	fmt.Printf("pk: %s\n", pkStr)
 	assert.NotEqual(t, pkStr,
 		"04000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+}
+
+func TestPkcs11Sessions(t *testing.T) {
+	p := getPkcs11()
+	if p == nil {
+		t.Fatal("Failed to init pkcs11")
+	}
+	defer p.Destroy()
+
+	api := NewPkcs11(p, CurveSecp256k1).WithSessionCheckDuration(time.Second)
+	ctx := context.Background()
+	err := api.Initialize(ctx)
+	assert.NoError(t, err)
+	defer api.Finalize(ctx)
+
+	session1, err := api.OpenSession(ctx, pin)
+	assert.NoError(t, err)
+
+	info1, err := p.GetSessionInfo(session1)
+	assert.NoError(t, err)
+	fmt.Printf("sessionInfo1, %v\n", info1)
+
+	// close with finalize
+}
+
+func TestPkcs11ReLogin(t *testing.T) {
+	p := getPkcs11()
+	if p == nil {
+		t.Fatal("Failed to init pkcs11")
+	}
+	defer p.Destroy()
+
+	api := NewPkcs11(p, CurveSecp256k1).WithSessionCheckDuration(time.Second)
+	ctx := context.Background()
+	err := api.Initialize(ctx)
+	assert.NoError(t, err)
+	defer api.Finalize(ctx)
+
+	session1, err := api.OpenSession(ctx, pin)
+	assert.NoError(t, err)
+
+	info1, err := p.GetSessionInfo(session1)
+	assert.NoError(t, err)
+	fmt.Printf("sessionInfo1, %v\n", info1)
+
+	err = api.ReLogin(ctx, session1, pin)
+	assert.NoError(t, err)
+
+	info2, err := p.GetSessionInfo(session1)
+	assert.NoError(t, err)
+	fmt.Printf("sessionInfo2, %v\n", info2)
+	assert.Equal(t, info2, info1)
+
+	// close with finalize
 }
 
 func generateKeyPair(
