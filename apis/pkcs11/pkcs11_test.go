@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/cryptogarageinc/pkcs11"
 	"github.com/stretchr/testify/assert"
@@ -68,7 +67,7 @@ func TestPkcs11Api(t *testing.T) {
 	}
 	defer p.Destroy()
 
-	api := NewPkcs11(p, CurveSecp256k1).WithSessionCheckDuration(time.Second)
+	api := NewPkcs11(p, CurveSecp256k1)
 	ctx := context.Background()
 	err := api.Initialize(ctx)
 	assert.NoError(t, err)
@@ -122,7 +121,7 @@ func TestPkcs11Sessions(t *testing.T) {
 	}
 	defer p.Destroy()
 
-	api := NewPkcs11(p, CurveSecp256k1).WithSessionCheckDuration(time.Second)
+	api := NewPkcs11(p, CurveSecp256k1)
 	ctx := context.Background()
 	err := api.Initialize(ctx)
 	assert.NoError(t, err)
@@ -145,7 +144,7 @@ func TestPkcs11ReLogin(t *testing.T) {
 	}
 	defer p.Destroy()
 
-	api := NewPkcs11(p, CurveSecp256k1).WithSessionCheckDuration(time.Second)
+	api := NewPkcs11(p, CurveSecp256k1)
 	ctx := context.Background()
 	err := api.Initialize(ctx)
 	assert.NoError(t, err)

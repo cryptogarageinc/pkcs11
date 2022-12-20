@@ -2,7 +2,6 @@ package pkcs11
 
 import (
 	"context"
-	"time"
 
 	"github.com/cryptogarageinc/pkcs11"
 	"github.com/pkg/errors"
@@ -97,7 +96,6 @@ func NewPkcs11(pkcs11Ctx *pkcs11.Ctx, namedCurveOid []byte) *pkcs11Api {
 	return &pkcs11Api{
 		pkcs11Obj:            pkcs11Ctx,
 		namedCurveOid:        namedCurveOid,
-		sessionCheckDuration: time.Hour,
 		targetSlot:           -1,
 	}
 }
@@ -109,14 +107,8 @@ type pkcs11Api struct {
 	pkcs11Obj            *pkcs11.Ctx
 	namedCurveOid        []byte
 	initialized          bool
-	sessionCheckDuration time.Duration
 	targetSlot           int
 	currentSlot          uint
-}
-
-func (p *pkcs11Api) WithSessionCheckDuration(duration time.Duration) *pkcs11Api {
-	p.sessionCheckDuration = duration
-	return p
 }
 
 func (p *pkcs11Api) WithSlot(slot int) *pkcs11Api {
