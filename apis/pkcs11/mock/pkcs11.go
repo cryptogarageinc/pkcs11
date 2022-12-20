@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	pkcs11 "github.com/cryptogarageinc/pkcs11"
+	pkcs110 "github.com/cryptogarageinc/pkcs11/apis/pkcs11"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -47,6 +48,22 @@ func (mr *MockPkcs11MockRecorder) CloseSession(ctx, session interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSession", reflect.TypeOf((*MockPkcs11)(nil).CloseSession), ctx, session)
 }
 
+// CreateXprivFromSeed mocks base method.
+func (m *MockPkcs11) CreateXprivFromSeed(ctx context.Context, session pkcs11.SessionHandle, seedHandle pkcs11.ObjectHandle, xpubLabel, xprivLabel string, canExport bool) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateXprivFromSeed", ctx, session, seedHandle, xpubLabel, xprivLabel, canExport)
+	ret0, _ := ret[0].(pkcs11.ObjectHandle)
+	ret1, _ := ret[1].(pkcs11.ObjectHandle)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// CreateXprivFromSeed indicates an expected call of CreateXprivFromSeed.
+func (mr *MockPkcs11MockRecorder) CreateXprivFromSeed(ctx, session, seedHandle, xpubLabel, xprivLabel, canExport interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateXprivFromSeed", reflect.TypeOf((*MockPkcs11)(nil).CreateXprivFromSeed), ctx, session, seedHandle, xpubLabel, xprivLabel, canExport)
+}
+
 // DeriveKeyPair mocks base method.
 func (m *MockPkcs11) DeriveKeyPair(ctx context.Context, session pkcs11.SessionHandle, masterXprivHandle pkcs11.ObjectHandle, path []uint32) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
 	m.ctrl.T.Helper()
@@ -61,6 +78,21 @@ func (m *MockPkcs11) DeriveKeyPair(ctx context.Context, session pkcs11.SessionHa
 func (mr *MockPkcs11MockRecorder) DeriveKeyPair(ctx, session, masterXprivHandle, path interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeriveKeyPair", reflect.TypeOf((*MockPkcs11)(nil).DeriveKeyPair), ctx, session, masterXprivHandle, path)
+}
+
+// ExportXpriv mocks base method.
+func (m *MockPkcs11) ExportXpriv(ctx context.Context, session pkcs11.SessionHandle, xprivHandle pkcs11.ObjectHandle) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExportXpriv", ctx, session, xprivHandle)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExportXpriv indicates an expected call of ExportXpriv.
+func (mr *MockPkcs11MockRecorder) ExportXpriv(ctx, session, xprivHandle interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExportXpriv", reflect.TypeOf((*MockPkcs11)(nil).ExportXpriv), ctx, session, xprivHandle)
 }
 
 // Finalize mocks base method.
@@ -91,10 +123,10 @@ func (mr *MockPkcs11MockRecorder) FindKeyByLabel(ctx, session, label interface{}
 }
 
 // GenerateSignature mocks base method.
-func (m *MockPkcs11) GenerateSignature(ctx context.Context, session pkcs11.SessionHandle, privkeyHandle pkcs11.ObjectHandle, mechanismType uint, message []byte) ([64]byte, error) {
+func (m *MockPkcs11) GenerateSignature(ctx context.Context, session pkcs11.SessionHandle, privkeyHandle pkcs11.ObjectHandle, mechanismType uint, message []byte) (pkcs110.SignatureBytes, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateSignature", ctx, session, privkeyHandle, mechanismType, message)
-	ret0, _ := ret[0].([64]byte)
+	ret0, _ := ret[0].(pkcs110.SignatureBytes)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -105,11 +137,25 @@ func (mr *MockPkcs11MockRecorder) GenerateSignature(ctx, session, privkeyHandle,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateSignature", reflect.TypeOf((*MockPkcs11)(nil).GenerateSignature), ctx, session, privkeyHandle, mechanismType, message)
 }
 
+// GetPkcs11Context mocks base method.
+func (m *MockPkcs11) GetPkcs11Context() *pkcs11.Ctx {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPkcs11Context")
+	ret0, _ := ret[0].(*pkcs11.Ctx)
+	return ret0
+}
+
+// GetPkcs11Context indicates an expected call of GetPkcs11Context.
+func (mr *MockPkcs11MockRecorder) GetPkcs11Context() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPkcs11Context", reflect.TypeOf((*MockPkcs11)(nil).GetPkcs11Context))
+}
+
 // GetPublicKey mocks base method.
-func (m *MockPkcs11) GetPublicKey(ctx context.Context, session pkcs11.SessionHandle, pubkeyHandle pkcs11.ObjectHandle) ([65]byte, error) {
+func (m *MockPkcs11) GetPublicKey(ctx context.Context, session pkcs11.SessionHandle, pubkeyHandle pkcs11.ObjectHandle) (pkcs110.PublicKeyBytes, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPublicKey", ctx, session, pubkeyHandle)
-	ret0, _ := ret[0].([65]byte)
+	ret0, _ := ret[0].(pkcs110.PublicKeyBytes)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -118,6 +164,36 @@ func (m *MockPkcs11) GetPublicKey(ctx context.Context, session pkcs11.SessionHan
 func (mr *MockPkcs11MockRecorder) GetPublicKey(ctx, session, pubkeyHandle interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublicKey", reflect.TypeOf((*MockPkcs11)(nil).GetPublicKey), ctx, session, pubkeyHandle)
+}
+
+// ImportSeed mocks base method.
+func (m *MockPkcs11) ImportSeed(ctx context.Context, session pkcs11.SessionHandle, seedBytes []byte, label string) (pkcs11.ObjectHandle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportSeed", ctx, session, seedBytes, label)
+	ret0, _ := ret[0].(pkcs11.ObjectHandle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportSeed indicates an expected call of ImportSeed.
+func (mr *MockPkcs11MockRecorder) ImportSeed(ctx, session, seedBytes, label interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportSeed", reflect.TypeOf((*MockPkcs11)(nil).ImportSeed), ctx, session, seedBytes, label)
+}
+
+// ImportXpriv mocks base method.
+func (m *MockPkcs11) ImportXpriv(ctx context.Context, session pkcs11.SessionHandle, xpriv, label string, canExport bool) (pkcs11.ObjectHandle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportXpriv", ctx, session, xpriv, label, canExport)
+	ret0, _ := ret[0].(pkcs11.ObjectHandle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportXpriv indicates an expected call of ImportXpriv.
+func (mr *MockPkcs11MockRecorder) ImportXpriv(ctx, session, xpriv, label, canExport interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportXpriv", reflect.TypeOf((*MockPkcs11)(nil).ImportXpriv), ctx, session, xpriv, label, canExport)
 }
 
 // Initialize mocks base method.
@@ -162,4 +238,18 @@ func (m *MockPkcs11) OpenSessionWithPartition(ctx context.Context, partitionID u
 func (mr *MockPkcs11MockRecorder) OpenSessionWithPartition(ctx, partitionID, pin interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenSessionWithPartition", reflect.TypeOf((*MockPkcs11)(nil).OpenSessionWithPartition), ctx, partitionID, pin)
+}
+
+// ReLogin mocks base method.
+func (m *MockPkcs11) ReLogin(ctx context.Context, session pkcs11.SessionHandle, pin string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReLogin", ctx, session, pin)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReLogin indicates an expected call of ReLogin.
+func (mr *MockPkcs11MockRecorder) ReLogin(ctx, session, pin interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReLogin", reflect.TypeOf((*MockPkcs11)(nil).ReLogin), ctx, session, pin)
 }

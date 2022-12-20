@@ -1,14 +1,38 @@
 package pkcs11
 
 import (
+	"encoding/hex"
 	"math"
 	"strconv"
 	"strings"
 
+	"github.com/cryptogarageinc/pkcs11"
 	"github.com/pkg/errors"
 )
 
-const hardenedNum = 0x80000000
+type SignatureBytes [64]byte
+
+func (s SignatureBytes) ToSlice() []byte {
+	return s[:]
+}
+
+func (s SignatureBytes) ToHex() string {
+	return hex.EncodeToString(s.ToSlice())
+}
+
+type PublicKeyBytes [65]byte
+
+func (s PublicKeyBytes) ToSlice() []byte {
+	return s[:]
+}
+
+func (s PublicKeyBytes) ToHex() string {
+	return hex.EncodeToString(s.ToSlice())
+}
+
+func GetMechanismSimple(mech uint) []*pkcs11.Mechanism {
+	return []*pkcs11.Mechanism{pkcs11.NewMechanism(mech, nil)}
+}
 
 func ConvertBip32PathFromString(pathStr string) (path []uint32, err error) {
 	pathStr = strings.TrimSpace(strings.ToLower(pathStr))
@@ -40,3 +64,5 @@ func ConvertBip32PathFromString(pathStr string) (path []uint32, err error) {
 	}
 	return path, nil
 }
+
+const hardenedNum = 0x80000000

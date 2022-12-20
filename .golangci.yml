@@ -10,6 +10,11 @@ run:
 
 issues:
   exclude-use-default: false
+  exclude-rules:
+    - path: _test.go
+      text: "is unused"
+    - path: _test.go
+      text: "is not checked"
 
 linters:
   enable:

@@ -2,6 +2,7 @@ package pkcs11
 
 import (
 	"context"
+	"fmt"
 )
 
 // LogLevel ...
@@ -36,20 +37,64 @@ var (
 	ctxLogFunc ContextLogFunc
 )
 
-func logging(ctx context.Context, level LogLevel, funcName string, err error, message string) {
-	var msg string
-	if err == nil {
-		msg = ": success: " + message
-	} else {
-		msg = ": err:" + err.Error() + ": " + message
+func logError(ctx context.Context, message string, err error) {
+	var errMsg string
+	if err != nil {
+		errMsg = " err:" + err.Error()
 	}
 	if ctx != nil {
-		if ctxLogFunc != nil && message != "" {
-			ctxLogFunc(ctx, level, funcName+msg)
+		if ctxLogFunc != nil {
+			ctxLogFunc(ctx, LogError, message+errMsg)
 		}
 	} else {
-		if logFunc != nil && message != "" {
-			logFunc(level, funcName+msg)
+		if logFunc != nil {
+			logFunc(LogError, message+errMsg)
+		}
+	}
+}
+
+func logWarn(ctx context.Context, message string, err error) {
+	var errMsg string
+	if err != nil {
+		errMsg = " err:" + err.Error()
+	}
+	if ctx != nil {
+		if ctxLogFunc != nil {
+			ctxLogFunc(ctx, LogWarn, message+errMsg)
+		}
+	} else {
+		if logFunc != nil {
+			logFunc(LogWarn, message+errMsg)
+		}
+	}
+}
+
+func logInfo(ctx context.Context, message string) {
+	if ctx != nil {
+		if ctxLogFunc != nil {
+			ctxLogFunc(ctx, LogInfo, message)
+		}
+	} else {
+		if logFunc != nil {
+			logFunc(LogInfo, message)
+		}
+	}
+}
+
+func logInfof(ctx context.Context, message string, params ...any) {
+	var msg string
+	if len(params) > 0 {
+		msg = fmt.Sprintf(message, params...)
+	} else {
+		msg = message
+	}
+	if ctx != nil {
+		if ctxLogFunc != nil {
+			ctxLogFunc(ctx, LogInfo, msg)
+		}
+	} else {
+		if logFunc != nil {
+			logFunc(LogInfo, msg)
 		}
 	}
 }
