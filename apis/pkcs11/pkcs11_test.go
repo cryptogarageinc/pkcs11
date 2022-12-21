@@ -81,7 +81,7 @@ func TestPkcs11Api(t *testing.T) {
 	var skHdl, pkHdl pkcs11.ObjectHandle
 	if testing.Short() {
 		// (not bip32 case)
-		pkHdl, skHdl, err = generateKeyPair(p, session, "test-pk", "test-sk")
+		pkHdl, skHdl, err = generateKeyPair(p, session, pkLabel, skLabel)
 		assert.NoError(t, err)
 		assert.NotEqual(t, pkHdl, 0)
 		assert.NotEqual(t, skHdl, 0)
@@ -166,6 +166,28 @@ func TestPkcs11ReLogin(t *testing.T) {
 	assert.Equal(t, info2, info1)
 
 	// close with finalize
+}
+
+func TestPkcs11GenerateSeed(t *testing.T) {
+	p := getPkcs11()
+	if p == nil {
+		t.Fatal("Failed to init pkcs11")
+	}
+	defer p.Destroy()
+
+	api := NewPkcs11(p, CurveSecp256k1)
+	ctx := context.Background()
+	err := api.Initialize(ctx)
+	assert.NoError(t, err)
+	defer api.Finalize(ctx)
+
+	session, err := api.OpenSession(ctx, pin)
+	assert.NoError(t, err)
+	defer api.CloseSession(ctx, session)
+
+	hdl, err := api.GenerateSeed(ctx, session, "", 512/8)
+	assert.NoError(t, err)
+	assert.NotEqual(t, pkcs11.ObjectHandle(0), hdl)
 }
 
 func generateKeyPair(
