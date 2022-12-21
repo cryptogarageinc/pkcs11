@@ -2,6 +2,8 @@ package pkcs11
 
 import (
 	"context"
+	"encoding/asn1"
+	stderrors "errors"
 
 	"github.com/cryptogarageinc/pkcs11"
 	"github.com/pkg/errors"
@@ -10,7 +12,11 @@ import (
 // Type: ECDSA
 const MechanismTypeEcdsa uint = pkcs11.CKM_ECDSA
 
-var CurveSecp256k1 = []byte{0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x0a}
+var (
+	CurveSecp256k1       = []byte{0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x0a}
+	ErrLabelNotFound     = stderrors.New("target label is empty")
+	ErrLabelAlreadyExist = stderrors.New("target label is already exist")
+)
 
 // go generate comment
 //go:generate -command mkdir mock
@@ -43,6 +49,12 @@ type Pkcs11 interface {
 		session pkcs11.SessionHandle,
 		label string,
 	) (key pkcs11.ObjectHandle, err error)
+	GenerateSeed(
+		ctx context.Context,
+		session pkcs11.SessionHandle,
+		label string,
+		length uint,
+	) (seedHandle pkcs11.ObjectHandle, err error)
 	CreateXprivFromSeed(
 		ctx context.Context,
 		session pkcs11.SessionHandle,
@@ -94,9 +106,9 @@ type Pkcs11 interface {
 
 func NewPkcs11(pkcs11Ctx *pkcs11.Ctx, namedCurveOid []byte) *pkcs11Api {
 	return &pkcs11Api{
-		pkcs11Obj:            pkcs11Ctx,
-		namedCurveOid:        namedCurveOid,
-		targetSlot:           -1,
+		pkcs11Obj:     pkcs11Ctx,
+		namedCurveOid: namedCurveOid,
+		targetSlot:    -1,
 	}
 }
 
@@ -104,11 +116,11 @@ var _ Pkcs11 = (*pkcs11Api)(nil)
 
 // TODO: Exclusive control should be performed by the caller.
 type pkcs11Api struct {
-	pkcs11Obj            *pkcs11.Ctx
-	namedCurveOid        []byte
-	initialized          bool
-	targetSlot           int
-	currentSlot          uint
+	pkcs11Obj     *pkcs11.Ctx
+	namedCurveOid []byte
+	initialized   bool
+	targetSlot    int
+	currentSlot   uint
 }
 
 func (p *pkcs11Api) WithSlot(slot int) *pkcs11Api {
@@ -217,13 +229,52 @@ func (p *pkcs11Api) FindKeyByLabel(
 		logError(ctx, "FindKeyByLabel", err)
 		return 0, err
 	default:
-		err = errors.Errorf("target is many, %d", len(handles))
+		err = errors.Wrapf(ErrLabelNotFound, "target is many, %d", len(handles))
 		logError(ctx, "FindKeyByLabel", err)
 		return 0, err
 	}
 	key = handles[0]
 	logInfo(ctx, "FindKeyByLabel success")
 	return key, nil
+}
+
+func (p *pkcs11Api) GenerateSeed(
+	ctx context.Context,
+	session pkcs11.SessionHandle,
+	label string,
+	byteLength uint,
+) (seedHandle pkcs11.ObjectHandle, err error) {
+	var token bool
+	if label != "" {
+		if exist, err := p.existLabel(ctx, session, label); err != nil {
+			logError(ctx, "GenerateSeed.existLabel", err)
+			return 0, err
+		} else if exist {
+			return 0, errors.Wrapf(ErrLabelAlreadyExist,
+				"GenerateSeed.existLabel,%s", label)
+		}
+		token = true
+	}
+	seedTemplate := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_SECRET_KEY),
+		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_GENERIC_SECRET),
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, token),
+		pkcs11.NewAttribute(pkcs11.CKA_DERIVE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, false),
+		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, label),
+		pkcs11.NewAttribute(pkcs11.CKA_VALUE_LEN, byteLength),
+	}
+	mech := []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_GENERIC_SECRET_KEY_GEN, nil)}
+	seedHandle, err = p.pkcs11Obj.GenerateKey(session, mech, seedTemplate)
+	if err != nil {
+		err = errors.WithStack(err)
+		logError(ctx, "GenerateSeed", err)
+		return 0, err
+	}
+	logInfof(ctx, "GenerateSeed success. len=%d (%d bit)", byteLength, byteLength*8)
+	return seedHandle, nil
 }
 
 func (p *pkcs11Api) CreateXprivFromSeed(
@@ -236,9 +287,23 @@ func (p *pkcs11Api) CreateXprivFromSeed(
 ) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error) {
 	var xpubToken, xprivToken bool
 	if xpubLabel != "" {
+		if exist, err := p.existLabel(ctx, session, xpubLabel); err != nil {
+			logError(ctx, "CreateXprivFromSeed.existLabel", err)
+			return 0, 0, err
+		} else if exist {
+			return 0, 0, errors.Wrapf(ErrLabelAlreadyExist,
+				"CreateXprivFromSeed.existLabel,%s", xpubLabel)
+		}
 		xpubToken = true
 	}
 	if xprivLabel != "" {
+		if exist, err := p.existLabel(ctx, session, xprivLabel); err != nil {
+			logError(ctx, "CreateXprivFromSeed.existLabel", err)
+			return 0, 0, err
+		} else if exist {
+			return 0, 0, errors.Wrapf(ErrLabelAlreadyExist,
+				"CreateXprivFromSeed.existLabel,%s", xprivLabel)
+		}
 		xprivToken = true
 	}
 	pubKeyAttr := []*pkcs11.Attribute{
@@ -337,10 +402,14 @@ func (p *pkcs11Api) GetPublicKey(
 	}
 	pubkey = PublicKeyBytes{}
 	switch len(attr[0].Value) {
-	case 65:
-		copy(pubkey[:], attr[0].Value)
-	case 67: // asn1 encoding
-		copy(pubkey[:], attr[0].Value[2:])
+	case 33, 65:
+		pubkey = attr[0].Value
+	case 35, 67: // asn1 encoding
+		if _, err := asn1.Unmarshal(attr[0].Value, &pubkey); err != nil {
+			err = errors.Wrap(err, "unmarshal failed")
+			logError(ctx, "GetPublicKey", err)
+			return pubkey, err
+		}
 	default:
 		err = errors.Errorf("invalid length, %d", len(attr[0].Value))
 		logError(ctx, "GetPublicKey", err)
@@ -356,6 +425,15 @@ func (p *pkcs11Api) ImportSeed(
 	seedBytes []byte,
 	label string,
 ) (seedHandle pkcs11.ObjectHandle, err error) {
+	if label != "" {
+		if exist, err := p.existLabel(ctx, session, label); err != nil {
+			logError(ctx, "ImportSeed.existLabel", err)
+			return 0, err
+		} else if exist {
+			return 0, errors.Wrapf(ErrLabelAlreadyExist,
+				"ImportSeed.existLabel,%s", label)
+		}
+	}
 	aesTemplate, aesMech := p.getAesTemplate()
 	wrappingKey, err := p.pkcs11Obj.GenerateKey(session, aesMech, aesTemplate)
 	if err != nil {
@@ -407,6 +485,15 @@ func (p *pkcs11Api) ImportXpriv(
 	label string,
 	canExport bool,
 ) (xprivHandle pkcs11.ObjectHandle, err error) {
+	if label != "" {
+		if exist, err := p.existLabel(ctx, session, label); err != nil {
+			logError(ctx, "ImportXpriv.existLabel", err)
+			return 0, err
+		} else if exist {
+			return 0, errors.Wrapf(ErrLabelAlreadyExist,
+				"ImportXpriv.existLabel,%s", label)
+		}
+	}
 	aesTemplate, aesMech := p.getAesTemplate()
 	wrappingKey, err := p.pkcs11Obj.GenerateKey(session, aesMech, aesTemplate)
 	if err != nil {
@@ -536,6 +623,29 @@ func (p *pkcs11Api) getSlotID(ctx context.Context) (uint, error) {
 	return slots[0], nil
 }
 
+func (p *pkcs11Api) existLabel(
+	ctx context.Context,
+	session pkcs11.SessionHandle,
+	label string,
+) (bool, error) {
+	template := []*pkcs11.Attribute{pkcs11.NewAttribute(pkcs11.CKA_LABEL, label)}
+	handles, err := p.findAttr(ctx, session, template, 2)
+	if err != nil {
+		logError(ctx, "FindKeyByLabel.findAttr", err)
+		return false, err
+	}
+	switch len(handles) {
+	case 1:
+		return true, nil
+	case 0:
+		return false, nil
+	default:
+		err = errors.Wrapf(ErrLabelNotFound, "target is many, %d", len(handles))
+		logError(ctx, "FindKeyByLabel", err)
+		return false, err
+	}
+}
+
 func (p *pkcs11Api) findAttr(
 	ctx context.Context,
 	session pkcs11.SessionHandle,
@@ -543,12 +653,12 @@ func (p *pkcs11Api) findAttr(
 	maxNum int,
 ) ([]pkcs11.ObjectHandle, error) {
 	if err := p.pkcs11Obj.FindObjectsInit(session, template); err != nil {
-		err = errors.Wrapf(err, "FindObjectsInit failed")
+		err = errors.Wrap(err, "FindObjectsInit failed")
 		return nil, err
 	}
 	obj, _, err := p.pkcs11Obj.FindObjects(session, maxNum)
 	if err != nil {
-		err = errors.Wrapf(err, "FindObjects failed")
+		err = errors.Wrap(err, "FindObjects failed")
 		tmpErr := p.pkcs11Obj.FindObjectsFinal(session)
 		if tmpErr != nil {
 			logError(ctx, "findAttr.FindObjectsFinal", tmpErr)
@@ -556,7 +666,7 @@ func (p *pkcs11Api) findAttr(
 		return nil, err
 	}
 	if err := p.pkcs11Obj.FindObjectsFinal(session); err != nil {
-		err = errors.Wrapf(err, "FindObjectsFinal failed")
+		err = errors.Wrap(err, "FindObjectsFinal failed")
 		return nil, err
 	}
 	return obj, nil

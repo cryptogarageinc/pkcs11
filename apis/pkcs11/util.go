@@ -20,10 +20,10 @@ func (s SignatureBytes) ToHex() string {
 	return hex.EncodeToString(s.ToSlice())
 }
 
-type PublicKeyBytes [65]byte
+type PublicKeyBytes []byte
 
 func (s PublicKeyBytes) ToSlice() []byte {
-	return s[:]
+	return s
 }
 
 func (s PublicKeyBytes) ToHex() string {
