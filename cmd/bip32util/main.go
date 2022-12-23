@@ -16,9 +16,9 @@ import (
 
 type environment struct {
 	PinCode string `env:"PIN_CODE,required"`
-	LibPath string `env:"CRYPTOKI_LIB_PATH,required"`
 
 	// optional
+	LibPath     string `env:"CRYPTOKI_LIB_PATH" envDefault:"/usr/safenet/lunaclient/lib/libCryptoki2_64.so"`
 	SlotID      int    `env:"SLOT_ID" envDefault:"-1"`
 	PartitionID int64  `env:"PARTITION_ID" envDefault:"-1"`
 	LogEnv      string `env:"LOG_ENV" envDefault:"product"`
