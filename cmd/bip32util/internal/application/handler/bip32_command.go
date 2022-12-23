@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/domain/service"
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/pkg/log"
@@ -44,6 +45,8 @@ func (h *bip32CmdHandler) ExecCommand(ctx context.Context) error {
 	rootCmd.AddCommand(h.exportXprivCmd(ctx))
 	rootCmd.AddCommand(h.findKeyCmd(ctx))
 	rootCmd.AddCommand(h.signCmd(ctx))
+	rootCmd.AddCommand(h.sleepCmd(ctx))
+	rootCmd.AddCommand(h.manyDeriveCmd(ctx))
 
 	return rootCmd.Execute()
 }
@@ -224,5 +227,53 @@ func (h *bip32CmdHandler) signCmd(ctx context.Context) *cobra.Command {
 	addCmd.Flags().StringVarP(&label, "label", "l", "", "xpriv label.")
 	addCmd.Flags().StringVarP(&path, "path", "p", "", "bip32 path.")
 	addCmd.Flags().StringVarP(&message, "message", "m", "", "message hash.")
+	return addCmd
+}
+
+func (h *bip32CmdHandler) manyDeriveCmd(ctx context.Context) *cobra.Command {
+	var label, basePath string
+	var count uint32
+	var sleepDuration time.Duration
+	addCmd := &cobra.Command{
+		Use:   "manyderive",
+		Short: "many derive keys",
+		Long:  "many derive keys.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if label == "" {
+				return errors.New("label is required")
+			}
+
+			if err := h.pkcs11Service.DeriveKeysByLabel(ctx, label, basePath, count); err != nil {
+				return err
+			}
+			fmt.Printf("sleep start. duration[%d]\n", sleepDuration)
+			time.Sleep(sleepDuration)
+			fmt.Println("sleep end.")
+			return nil
+		},
+	}
+
+	addCmd.Flags().StringVarP(&label, "label", "l", "", "xpriv label.")
+	addCmd.Flags().StringVarP(&basePath, "basepath", "p", "", "bip32 base path.")
+	addCmd.Flags().Uint32VarP(&count, "count", "c", 1, "bip32 derive count.")
+	addCmd.Flags().DurationVarP(&sleepDuration, "duration", "d", time.Second, "sleep duration. default=1s.")
+	return addCmd
+}
+
+func (h *bip32CmdHandler) sleepCmd(ctx context.Context) *cobra.Command {
+	var sleepDuration time.Duration
+	addCmd := &cobra.Command{
+		Use:   "sleep",
+		Short: "sleep after logon session.",
+		Long:  "sleep after logon session.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Printf("sleep start. duration[%d]\n", sleepDuration)
+			time.Sleep(sleepDuration)
+			fmt.Println("sleep end.")
+			return nil
+		},
+	}
+
+	addCmd.Flags().DurationVarP(&sleepDuration, "duration", "d", time.Second, "sleep duration. default=1s.")
 	return addCmd
 }

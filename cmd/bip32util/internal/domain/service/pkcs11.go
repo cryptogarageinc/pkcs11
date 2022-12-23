@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cryptogarageinc/pkcs11"
 	pkcs11api "github.com/cryptogarageinc/pkcs11/apis/pkcs11"
@@ -53,6 +54,12 @@ type Pkcs11 interface {
 		xprivLabel string,
 		path string,
 	) (publicKey []byte, err error)
+	DeriveKeysByLabel(
+		ctx context.Context,
+		xprivLabel string,
+		basePath string,
+		count uint32,
+	) error
 }
 
 type pkcs11Service struct {
@@ -224,4 +231,28 @@ func (s *pkcs11Service) GetPublicKeyByDeriveKey(
 		return nil, err
 	}
 	return pk.ToSlice(), nil
+}
+
+func (s *pkcs11Service) DeriveKeysByLabel(
+	ctx context.Context,
+	xprivLabel string,
+	basePath string,
+	count uint32,
+) error {
+	xprivHdl, err := s.pkcs11Api.FindKeyByLabel(ctx, s.session, xprivLabel)
+	if err != nil {
+		return err
+	}
+	for i := uint32(0); i < count; i++ {
+		path := fmt.Sprintf("%s/%d", basePath, i)
+		pkHdl, _, err := s.DeriveKeyPair(ctx, s.session, xprivHdl, path)
+		if err != nil {
+			return err
+		}
+		_, err = s.pkcs11Api.GetPublicKey(ctx, s.session, pkHdl)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
