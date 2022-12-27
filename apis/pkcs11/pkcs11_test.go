@@ -47,8 +47,12 @@ func init() {
 	os.Setenv("SOFTHSM_CONF", wd+"/softhsm.conf")
 	os.Setenv("SOFTHSM2_CONF", wd+"/softhsm2.conf")
 
-	SetContextLogger(func(_ context.Context, level LogLevel, message string) {
-		fmt.Printf("[%s] %s\n", level, message)
+	SetContextLogger(func(_ context.Context, level LogLevel, message string, err error) {
+		if err == nil {
+			fmt.Printf("[%s] %s\n", level, message)
+		} else {
+			fmt.Printf("[%s] %s, err=%+v\n", level, message, err)
+		}
 	})
 }
 
@@ -101,9 +105,10 @@ func TestPkcs11Api(t *testing.T) {
 	sig, err := api.GenerateSignature(ctx, session, skHdl, MechanismTypeEcdsa, testHashByte)
 	assert.NoError(t, err)
 	sigStr := sig.ToHex()
+	fmt.Printf("sig: %s\n", sigStr)
 	assert.NotEqual(t, sigStr,
 		"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	fmt.Printf("sig: %s\n", sigStr)
+	assert.Equal(t, len(sig), 64)
 
 	// get pubkey
 	pk, err := api.GetPublicKey(ctx, session, pkHdl)
@@ -112,6 +117,7 @@ func TestPkcs11Api(t *testing.T) {
 	fmt.Printf("pk: %s\n", pkStr)
 	assert.NotEqual(t, pkStr,
 		"04000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	assert.Equal(t, len(pk), 65)
 }
 
 func TestPkcs11Sessions(t *testing.T) {
