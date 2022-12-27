@@ -25,7 +25,7 @@ var (
 
 type Pkcs11 interface {
 	GetPkcs11Context() *pkcs11.Ctx
-	GetCurrentSlot() uint
+	GetCurrentSlot() (slotID uint, exist bool)
 	Initialize(ctx context.Context) error
 	Finalize(ctx context.Context)
 
@@ -35,15 +35,16 @@ type Pkcs11 interface {
 		pin string,
 	) (session pkcs11.SessionHandle, err error)
 	// OpenSessionWithPartition creates a session for a partition, and login an user.
-	OpenSessionWithPartition(
+	OpenSessionWithPartitionAndSlot(
 		ctx context.Context,
+		slotID uint,
 		partitionID uint,
 		pin string,
 	) (session pkcs11.SessionHandle, err error)
 	// CloseSession deletes a session and logout an user.
 	CloseSession(ctx context.Context, session pkcs11.SessionHandle)
 	// CloseSessionAll deletes all sessions.
-	CloseSessionAll(ctx context.Context)
+	CloseSessionAll(ctx context.Context, slotID uint)
 	// ReLogin does logout and re-login.
 	ReLogin(ctx context.Context, session pkcs11.SessionHandle, pin string) error
 
@@ -123,7 +124,7 @@ type pkcs11Api struct {
 	namedCurveOid []byte
 	initialized   bool
 	targetSlot    int
-	currentSlot   uint
+	currentSlot   *uint
 }
 
 func (p *pkcs11Api) WithSlot(slot int) *pkcs11Api {
@@ -137,8 +138,11 @@ func (p *pkcs11Api) GetPkcs11Context() *pkcs11.Ctx {
 	return p.pkcs11Obj
 }
 
-func (p *pkcs11Api) GetCurrentSlot() uint {
-	return p.currentSlot
+func (p *pkcs11Api) GetCurrentSlot() (slotID uint, exist bool) {
+	if p.currentSlot == nil {
+		return 0, false
+	}
+	return *p.currentSlot, true
 }
 
 func (p *pkcs11Api) Initialize(ctx context.Context) error {
@@ -162,8 +166,8 @@ func (p *pkcs11Api) Finalize(ctx context.Context) {
 		return
 	}
 
-	if err := p.pkcs11Obj.CloseAllSessions(p.currentSlot); err != nil {
-		logWarn(ctx, "Finalize.CloseAllSessions", err)
+	if p.currentSlot != nil {
+		p.CloseSessionAll(ctx, *p.currentSlot)
 	}
 
 	if err := p.pkcs11Obj.Finalize(); err != nil {
@@ -178,15 +182,16 @@ func (p *pkcs11Api) OpenSession(
 	ctx context.Context,
 	pin string,
 ) (session pkcs11.SessionHandle, err error) {
-	return p.openSession(ctx, nil, pin)
+	return p.openSession(ctx, nil, nil, pin)
 }
 
-func (p *pkcs11Api) OpenSessionWithPartition(
+func (p *pkcs11Api) OpenSessionWithPartitionAndSlot(
 	ctx context.Context,
+	slotID uint,
 	partitionID uint,
 	pin string,
 ) (session pkcs11.SessionHandle, err error) {
-	return p.openSession(ctx, &partitionID, pin)
+	return p.openSession(ctx, &slotID, &partitionID, pin)
 }
 
 func (p *pkcs11Api) CloseSession(ctx context.Context, session pkcs11.SessionHandle) {
@@ -204,8 +209,8 @@ func (p *pkcs11Api) CloseSession(ctx context.Context, session pkcs11.SessionHand
 	logInfo(ctx, "CloseSession success")
 }
 
-func (p *pkcs11Api) CloseSessionAll(ctx context.Context) {
-	if err := p.pkcs11Obj.CloseAllSessions(p.currentSlot); err != nil {
+func (p *pkcs11Api) CloseSessionAll(ctx context.Context, slotID uint) {
+	if err := p.pkcs11Obj.CloseAllSessions(slotID); err != nil {
 		logWarn(ctx, "Finalize.CloseAllSessions", err)
 	}
 }
@@ -578,25 +583,32 @@ func (p *pkcs11Api) ExportXpriv(
 
 func (p *pkcs11Api) openSession(
 	ctx context.Context,
+	slotID *uint,
 	partitionID *uint,
 	pin string,
 ) (session pkcs11.SessionHandle, err error) {
-	slotID, err := p.getSlotID(ctx)
-	if err != nil {
-		logError(ctx, "openSession.getSlotID", err)
-		return 0, err
+	var targetSlotID uint
+	if slotID == nil {
+		tmpSlotID, err := p.getSlotID(ctx)
+		if err != nil {
+			logError(ctx, "openSession.getSlotID", err)
+			return 0, err
+		}
+		targetSlotID = tmpSlotID
+	} else {
+		targetSlotID = *slotID
 	}
 
 	if partitionID == nil {
 		session, err = p.pkcs11Obj.OpenSession(
-			slotID, pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
+			targetSlotID, pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
 		if err != nil {
 			logError(ctx, "openSession.OpenSession", err)
 			return 0, errors.Wrap(err, "openSession failed")
 		}
 	} else {
 		session, err = p.pkcs11Obj.OpenSessionWithPartition(
-			slotID, *partitionID, pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
+			targetSlotID, *partitionID, pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
 		if err != nil {
 			logError(ctx, "openSession.OpenSessionWithPartition", err)
 			return 0, errors.Wrap(err, "openSession failed")
@@ -612,7 +624,9 @@ func (p *pkcs11Api) openSession(
 	}
 
 	logInfo(ctx, "openSession success")
-	p.currentSlot = slotID
+	if slotID == nil {
+		p.currentSlot = &targetSlotID
+	}
 	return session, nil
 }
 
