@@ -75,11 +75,12 @@ func NewPkcs11(
 	ctx context.Context,
 	pkcs11Api pkcs11api.Pkcs11,
 	pin string,
+	slotID int,
 	partitionID int64,
 ) (service *pkcs11Service, err error) {
 	var session pkcs11.SessionHandle
 	if partitionID >= 0 {
-		session, err = pkcs11Api.OpenSessionWithPartition(ctx, uint(partitionID), pin)
+		session, err = pkcs11Api.OpenSessionWithPartitionAndSlot(ctx, uint(slotID), uint(partitionID), pin)
 		if err != nil {
 			return nil, err
 		}

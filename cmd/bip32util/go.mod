@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/caarlos0/env/v6 v6.1.0
-	github.com/cryptogarageinc/pkcs11 v1.0.2
+	github.com/cryptogarageinc/pkcs11 v1.0.3
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.0.0
 	go.uber.org/zap v1.17.0
