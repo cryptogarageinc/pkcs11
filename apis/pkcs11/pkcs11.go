@@ -25,6 +25,7 @@ var (
 
 type Pkcs11 interface {
 	GetPkcs11Context() *pkcs11.Ctx
+	GetCurrentSlot() uint
 	Initialize(ctx context.Context) error
 	Finalize(ctx context.Context)
 
@@ -41,6 +42,8 @@ type Pkcs11 interface {
 	) (session pkcs11.SessionHandle, err error)
 	// CloseSession deletes a session and logout an user.
 	CloseSession(ctx context.Context, session pkcs11.SessionHandle)
+	// CloseSessionAll deletes all sessions.
+	CloseSessionAll(ctx context.Context)
 	// ReLogin does logout and re-login.
 	ReLogin(ctx context.Context, session pkcs11.SessionHandle, pin string) error
 
@@ -134,6 +137,10 @@ func (p *pkcs11Api) GetPkcs11Context() *pkcs11.Ctx {
 	return p.pkcs11Obj
 }
 
+func (p *pkcs11Api) GetCurrentSlot() uint {
+	return p.currentSlot
+}
+
 func (p *pkcs11Api) Initialize(ctx context.Context) error {
 	if p.initialized {
 		return nil
@@ -195,6 +202,12 @@ func (p *pkcs11Api) CloseSession(ctx context.Context, session pkcs11.SessionHand
 		return
 	}
 	logInfo(ctx, "CloseSession success")
+}
+
+func (p *pkcs11Api) CloseSessionAll(ctx context.Context) {
+	if err := p.pkcs11Obj.CloseAllSessions(p.currentSlot); err != nil {
+		logWarn(ctx, "Finalize.CloseAllSessions", err)
+	}
 }
 
 func (p *pkcs11Api) ReLogin(ctx context.Context, session pkcs11.SessionHandle, pin string) error {
