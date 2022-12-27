@@ -15,10 +15,10 @@ const (
 )
 
 // LogFunc ...
-type LogFunc func(level LogLevel, message string)
+type LogFunc func(level LogLevel, message string, err error)
 
 // ContextLogFunc ...
-type ContextLogFunc func(ctx context.Context, level LogLevel, message string)
+type ContextLogFunc func(ctx context.Context, level LogLevel, message string, err error)
 
 // SetLogger ...
 func SetLogger(logger LogFunc) {
@@ -38,33 +38,25 @@ var (
 )
 
 func logError(ctx context.Context, message string, err error) {
-	var errMsg string
-	if err != nil {
-		errMsg = " err:" + err.Error()
-	}
 	if ctx != nil {
 		if ctxLogFunc != nil {
-			ctxLogFunc(ctx, LogError, message+errMsg)
+			ctxLogFunc(ctx, LogError, message, err)
 		}
 	} else {
 		if logFunc != nil {
-			logFunc(LogError, message+errMsg)
+			logFunc(LogError, message, err)
 		}
 	}
 }
 
 func logWarn(ctx context.Context, message string, err error) {
-	var errMsg string
-	if err != nil {
-		errMsg = " err:" + err.Error()
-	}
 	if ctx != nil {
 		if ctxLogFunc != nil {
-			ctxLogFunc(ctx, LogWarn, message+errMsg)
+			ctxLogFunc(ctx, LogWarn, message, err)
 		}
 	} else {
 		if logFunc != nil {
-			logFunc(LogWarn, message+errMsg)
+			logFunc(LogWarn, message, err)
 		}
 	}
 }
@@ -72,11 +64,11 @@ func logWarn(ctx context.Context, message string, err error) {
 func logInfo(ctx context.Context, message string) {
 	if ctx != nil {
 		if ctxLogFunc != nil {
-			ctxLogFunc(ctx, LogInfo, message)
+			ctxLogFunc(ctx, LogInfo, message, nil)
 		}
 	} else {
 		if logFunc != nil {
-			logFunc(LogInfo, message)
+			logFunc(LogInfo, message, nil)
 		}
 	}
 }
@@ -90,11 +82,11 @@ func logInfof(ctx context.Context, message string, params ...any) {
 	}
 	if ctx != nil {
 		if ctxLogFunc != nil {
-			ctxLogFunc(ctx, LogInfo, msg)
+			ctxLogFunc(ctx, LogInfo, msg, nil)
 		}
 	} else {
 		if logFunc != nil {
-			logFunc(LogInfo, msg)
+			logFunc(LogInfo, msg, nil)
 		}
 	}
 }

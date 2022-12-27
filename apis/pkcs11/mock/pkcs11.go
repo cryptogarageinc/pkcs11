@@ -48,6 +48,18 @@ func (mr *MockPkcs11MockRecorder) CloseSession(ctx, session interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSession", reflect.TypeOf((*MockPkcs11)(nil).CloseSession), ctx, session)
 }
 
+// CloseSessionAll mocks base method.
+func (m *MockPkcs11) CloseSessionAll(ctx context.Context) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "CloseSessionAll", ctx)
+}
+
+// CloseSessionAll indicates an expected call of CloseSessionAll.
+func (mr *MockPkcs11MockRecorder) CloseSessionAll(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSessionAll", reflect.TypeOf((*MockPkcs11)(nil).CloseSessionAll), ctx)
+}
+
 // CreateXprivFromSeed mocks base method.
 func (m *MockPkcs11) CreateXprivFromSeed(ctx context.Context, session pkcs11.SessionHandle, seedHandle pkcs11.ObjectHandle, xpubLabel, xprivLabel string, canExport bool) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
 	m.ctrl.T.Helper()
@@ -122,6 +134,21 @@ func (mr *MockPkcs11MockRecorder) FindKeyByLabel(ctx, session, label interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindKeyByLabel", reflect.TypeOf((*MockPkcs11)(nil).FindKeyByLabel), ctx, session, label)
 }
 
+// GenerateSeed mocks base method.
+func (m *MockPkcs11) GenerateSeed(ctx context.Context, session pkcs11.SessionHandle, label string, length uint) (pkcs11.ObjectHandle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateSeed", ctx, session, label, length)
+	ret0, _ := ret[0].(pkcs11.ObjectHandle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateSeed indicates an expected call of GenerateSeed.
+func (mr *MockPkcs11MockRecorder) GenerateSeed(ctx, session, label, length interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateSeed", reflect.TypeOf((*MockPkcs11)(nil).GenerateSeed), ctx, session, label, length)
+}
+
 // GenerateSignature mocks base method.
 func (m *MockPkcs11) GenerateSignature(ctx context.Context, session pkcs11.SessionHandle, privkeyHandle pkcs11.ObjectHandle, mechanismType uint, message []byte) (pkcs110.SignatureBytes, error) {
 	m.ctrl.T.Helper()
@@ -135,6 +162,20 @@ func (m *MockPkcs11) GenerateSignature(ctx context.Context, session pkcs11.Sessi
 func (mr *MockPkcs11MockRecorder) GenerateSignature(ctx, session, privkeyHandle, mechanismType, message interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateSignature", reflect.TypeOf((*MockPkcs11)(nil).GenerateSignature), ctx, session, privkeyHandle, mechanismType, message)
+}
+
+// GetCurrentSlot mocks base method.
+func (m *MockPkcs11) GetCurrentSlot() uint {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCurrentSlot")
+	ret0, _ := ret[0].(uint)
+	return ret0
+}
+
+// GetCurrentSlot indicates an expected call of GetCurrentSlot.
+func (mr *MockPkcs11MockRecorder) GetCurrentSlot() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCurrentSlot", reflect.TypeOf((*MockPkcs11)(nil).GetCurrentSlot))
 }
 
 // GetPkcs11Context mocks base method.
