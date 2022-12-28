@@ -16,23 +16,22 @@ func newCmdHandler(ctx context.Context, env *environment) handler.CmdHandler {
 		panic("failed to create pkcs11")
 	}
 
-	api := pkcs11api.NewPkcs11(p, pkcs11api.CurveSecp256k1).WithSlot(env.SlotID)
-	closeFn := func(ctx context.Context) error {
+	api := pkcs11api.NewPkcs11(p, pkcs11api.CurveSecp256k1).WithSlot(env.SlotID).WithSOLogin(env.LoginBySO)
+	closeFn := func(ctx context.Context) {
 		if env.SlotID >= 0 {
 			api.CloseSessionAll(ctx, uint(env.SlotID))
 		}
 		api.Finalize(ctx)
 		p.Destroy()
-		return nil
 	}
 
 	if err := api.Initialize(ctx); err != nil {
-		_ = closeFn(ctx)
+		closeFn(ctx)
 		panic(err)
 	}
 	pkcs11Service, err := service.NewPkcs11(ctx, api, env.PinCode, env.SlotID, env.PartitionID)
 	if err != nil {
-		_ = closeFn(ctx)
+		closeFn(ctx)
 		panic(err)
 	}
 	return handler.NewBip32CmdHandler(pkcs11Service, closeFn)
