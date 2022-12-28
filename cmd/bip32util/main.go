@@ -21,6 +21,7 @@ type environment struct {
 	LibPath     string `env:"CRYPTOKI_LIB_PATH" envDefault:"/usr/safenet/lunaclient/lib/libCryptoki2_64.so"`
 	SlotID      int    `env:"SLOT_ID" envDefault:"-1"`
 	PartitionID int64  `env:"PARTITION_ID" envDefault:"-1"`
+	LoginBySO   bool   `env:"SO_LOGIN" envDefault:"false"`
 	LogEnv      string `env:"LOG_ENV" envDefault:"product"`
 }
 
@@ -38,11 +39,7 @@ func main() {
 	ctx := zapcontext.ToContext(context.Background(), logger)
 
 	cmdHandler := newCmdHandler(ctx, envObj)
-	defer func() {
-		if tmpErr := cmdHandler.Close(ctx); tmpErr != nil {
-			logger.Error("handler close failed.", zap.Error(tmpErr))
-		}
-	}()
+	defer cmdHandler.Close(ctx)
 	if err := cmdHandler.ExecCommand(ctx); err != nil {
 		logger.Error("command failed.", zap.Error(err))
 	}

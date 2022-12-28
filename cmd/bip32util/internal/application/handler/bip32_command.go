@@ -16,10 +16,10 @@ import (
 
 type CmdHandler interface {
 	ExecCommand(ctx context.Context) error
-	Close(ctx context.Context) error
+	Close(ctx context.Context)
 }
 
-type CloseFunc func(ctx context.Context) error
+type CloseFunc func(ctx context.Context)
 
 type bip32CmdHandler struct {
 	closeFn       CloseFunc
@@ -51,9 +51,10 @@ func (h *bip32CmdHandler) ExecCommand(ctx context.Context) error {
 	return rootCmd.Execute()
 }
 
-func (h *bip32CmdHandler) Close(ctx context.Context) error {
-	return h.closeFn(ctx)
+func (h *bip32CmdHandler) Close(ctx context.Context) {
+	h.closeFn(ctx)
 }
+
 func (h *bip32CmdHandler) genXprivCmd(ctx context.Context) *cobra.Command {
 	var seedLabel, xprivlabel string
 	var seedByteLen uint32
