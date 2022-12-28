@@ -123,6 +123,7 @@ type pkcs11Api struct {
 	pkcs11Obj     *pkcs11.Ctx
 	namedCurveOid []byte
 	initialized   bool
+	hasLoginBySO  bool
 	targetSlot    int
 	currentSlot   *uint
 }
@@ -130,6 +131,13 @@ type pkcs11Api struct {
 func (p *pkcs11Api) WithSlot(slot int) *pkcs11Api {
 	if slot >= 0 {
 		p.targetSlot = slot
+	}
+	return p
+}
+
+func (p *pkcs11Api) WithSOLogin(hasLoginBySO bool) *pkcs11Api {
+	if hasLoginBySO {
+		p.hasLoginBySO = hasLoginBySO
 	}
 	return p
 }
@@ -220,7 +228,11 @@ func (p *pkcs11Api) ReLogin(ctx context.Context, session pkcs11.SessionHandle, p
 		logWarn(ctx, "ReLogin.Logout", err)
 	}
 
-	if err := p.pkcs11Obj.Login(session, pkcs11.CKU_USER, pin); err != nil {
+	userType := pkcs11.CKU_USER
+	if p.hasLoginBySO {
+		userType = pkcs11.CKU_SO
+	}
+	if err := p.pkcs11Obj.Login(session, userType, pin); err != nil {
 		logError(ctx, "ReLogin.Login", err)
 		err = errors.Wrap(err, "ReLogin failed")
 		return err
@@ -614,7 +626,12 @@ func (p *pkcs11Api) openSession(
 			return 0, errors.Wrap(err, "openSession failed")
 		}
 	}
-	if err = p.pkcs11Obj.Login(session, pkcs11.CKU_USER, pin); err != nil {
+
+	userType := pkcs11.CKU_USER
+	if p.hasLoginBySO {
+		userType = pkcs11.CKU_SO
+	}
+	if err = p.pkcs11Obj.Login(session, userType, pin); err != nil {
 		logError(ctx, "openSession.Login", err)
 		tmpErr := p.pkcs11Obj.CloseSession(session)
 		if tmpErr != nil {
@@ -637,7 +654,7 @@ func (p *pkcs11Api) getSlotID(ctx context.Context) (uint, error) {
 	} else if len(slots) == 0 {
 		return 0, errors.New("slot is empty")
 	}
-	logInfof(ctx, "getSlotID %v", slots)
+	logInfof(ctx, "GetSlotList %v", slots)
 	if p.targetSlot >= 0 {
 		for _, slot := range slots {
 			if slot == uint(p.targetSlot) {
