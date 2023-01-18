@@ -65,6 +65,9 @@ func (h *bip32CmdHandler) genXprivCmd(ctx context.Context) *cobra.Command {
 		Short: "generate seed and xpriv",
 		Long:  "generate seed and xpriv",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if h.pkcs11Service == nil {
+				return errors.New("failed to create the pkcs11 service.")
+			}
 			if seedLabel == "" {
 				log.Warning(ctx, "label is empty. seed is not save.")
 			}
@@ -95,6 +98,9 @@ func (h *bip32CmdHandler) importXprivCmd(ctx context.Context) *cobra.Command {
 		Short: "import xpriv",
 		Long:  "import xpriv. required seed or xpriv.",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if h.pkcs11Service == nil {
+				return errors.New("failed to create the pkcs11 service.")
+			}
 			if label == "" {
 				log.Warning(ctx, "label is empty. xpriv is not save.")
 			}
@@ -133,6 +139,9 @@ func (h *bip32CmdHandler) exportXprivCmd(ctx context.Context) *cobra.Command {
 		Short: "export xpriv",
 		Long:  "export xpriv",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if h.pkcs11Service == nil {
+				return errors.New("failed to create the pkcs11 service.")
+			}
 			if label == "" {
 				return errors.New("label is required")
 			}
@@ -174,6 +183,9 @@ func (h *bip32CmdHandler) findKeyCmd(ctx context.Context) *cobra.Command {
 		Short: "find key",
 		Long:  "find key. if set bip32 path, get the derive key.",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if h.pkcs11Service == nil {
+				return errors.New("failed to create the pkcs11 service.")
+			}
 			if label == "" {
 				return errors.New("label is required")
 			}
@@ -202,10 +214,13 @@ func (h *bip32CmdHandler) findKeyCmd(ctx context.Context) *cobra.Command {
 func (h *bip32CmdHandler) signCmd(ctx context.Context) *cobra.Command {
 	var label, path, message string
 	addCmd := &cobra.Command{
-		Use:   "exportxpriv",
-		Short: "export xpriv",
-		Long:  "export xpriv",
+		Use:   "sign",
+		Short: "sign",
+		Long:  "sign",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if h.pkcs11Service == nil {
+				return errors.New("failed to create the pkcs11 service.")
+			}
 			if label == "" {
 				return errors.New("label is required")
 			}
@@ -240,6 +255,9 @@ func (h *bip32CmdHandler) manyDeriveCmd(ctx context.Context) *cobra.Command {
 		Short: "many derive keys",
 		Long:  "many derive keys.",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if h.pkcs11Service == nil {
+				return errors.New("failed to create the pkcs11 service.")
+			}
 			if label == "" {
 				return errors.New("label is required")
 			}
