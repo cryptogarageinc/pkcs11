@@ -82,9 +82,9 @@ func (h *bip32CmdHandler) genXprivCmd(ctx context.Context) *cobra.Command {
 	}
 
 	addCmd.Flags().Uint32VarP(&seedByteLen, "seedByteLen", "s", 64, "seed byte length. default is 64 (512 bit)")
-	addCmd.Flags().StringVarP(&seedLabel, "seedLabel", "sl", "", "seed label. if empty, xpriv has not save.")
-	addCmd.Flags().StringVarP(&xprivlabel, "xprivlabel", "xl", "", "xpriv label. if empty, xpriv has not save.")
-	addCmd.Flags().BoolVarP(&canExport, "canExport", "ce", false, "export flag. if false, importing xpriv can not export.")
+	addCmd.Flags().StringVarP(&seedLabel, "seedLabel", "l", "", "seed label. if empty, xpriv has not save.")
+	addCmd.Flags().StringVarP(&xprivlabel, "xprivlabel", "x", "", "xpriv label. if empty, xpriv has not save.")
+	addCmd.Flags().BoolVarP(&canExport, "canExport", "c", false, "export flag. if false, importing xpriv can not export.")
 	return addCmd
 }
 
@@ -127,7 +127,7 @@ func (h *bip32CmdHandler) importXprivCmd(ctx context.Context) *cobra.Command {
 	addCmd.Flags().StringVarP(&seed, "seed", "s", "", "seed")
 	addCmd.Flags().StringVarP(&xpriv, "xpriv", "x", "", "master xpriv key")
 	addCmd.Flags().StringVarP(&label, "label", "l", "", "xpriv label. if empty, xpriv has not save.")
-	addCmd.Flags().BoolVarP(&canExport, "canExport", "ce", false, "export flag. if false, importing xpriv can not export.")
+	addCmd.Flags().BoolVarP(&canExport, "canExport", "c", false, "export flag. if false, importing xpriv can not export.")
 	return addCmd
 }
 
