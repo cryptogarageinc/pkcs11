@@ -5,6 +5,7 @@ import (
 
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/application/handler"
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/domain/service"
+	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/pkg/log"
 
 	"github.com/cryptogarageinc/pkcs11"
 	pkcs11api "github.com/cryptogarageinc/pkcs11/apis/pkcs11"
@@ -31,8 +32,8 @@ func newCmdHandler(ctx context.Context, env *environment) handler.CmdHandler {
 	}
 	pkcs11Service, err := service.NewPkcs11(ctx, api, env.PinCode, env.SlotID, env.PartitionID)
 	if err != nil {
-		closeFn(ctx)
-		panic(err)
+		log.Error(ctx, "failed to create the pkcs11 service.", err)
+		// To display help, do not execute a panic here.
 	}
 	return handler.NewBip32CmdHandler(pkcs11Service, closeFn)
 }

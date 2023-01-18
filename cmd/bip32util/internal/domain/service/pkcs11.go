@@ -35,9 +35,6 @@ type Pkcs11 interface {
 		ctx context.Context,
 		xprivLabel string,
 	) (xpriv string, err error)
-	// find by label
-	// sign with derive & findLabel
-	// get pubkey with derive & findLabel
 
 	FindKeyByLabel(
 		ctx context.Context,
