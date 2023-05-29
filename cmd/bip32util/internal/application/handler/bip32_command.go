@@ -2,12 +2,14 @@ package handler
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/domain/service"
+	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/pkg/aes"
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -89,10 +91,9 @@ func (h *bip32CmdHandler) genXprivCmd(ctx context.Context) *cobra.Command {
 }
 
 func (h *bip32CmdHandler) importXprivCmd(ctx context.Context) *cobra.Command {
-	var seed, xpriv string
-	var label string
+	var seed, xpriv, encryptSecret, label string
 	var canExport bool
-	// TODO: AES KEY encrypt状態でのimportも検討
+	var err error
 	addCmd := &cobra.Command{
 		Use:   "importxpriv",
 		Short: "import xpriv",
@@ -104,15 +105,39 @@ func (h *bip32CmdHandler) importXprivCmd(ctx context.Context) *cobra.Command {
 			if label == "" {
 				log.Warning(ctx, "label is empty. xpriv is not save.")
 			}
+			var secretKey []byte
+			if encryptSecret != "" {
+				secretKey, err = base64.StdEncoding.DecodeString(encryptSecret)
+				if err != nil {
+					return errors.Wrap(err, "base64 decode failed.")
+				}
+			}
 			switch {
 			case xpriv != "":
+				if encryptSecret != "" {
+					aesCli := aes.NewClient()
+					decryptVal, err := aesCli.DecryptWithBase64(secretKey, xpriv)
+					if err != nil {
+						return err
+					}
+					xpriv = string(decryptVal)
+				}
 				if err := h.pkcs11Service.ImportXpriv(ctx, xpriv, label, canExport); err != nil {
 					return err
 				}
 			case seed != "":
-				seedBytes, err := hex.DecodeString(seed)
-				if err != nil {
-					return err
+				var seedBytes []byte
+				if encryptSecret != "" {
+					aesCli := aes.NewClient()
+					seedBytes, err = aesCli.DecryptWithBase64(secretKey, seed)
+					if err != nil {
+						return err
+					}
+				} else {
+					seedBytes, err = hex.DecodeString(seed)
+					if err != nil {
+						return err
+					}
 				}
 				if err := h.pkcs11Service.ImportXprivFromSeed(ctx, seedBytes, label, canExport); err != nil {
 					return err
@@ -124,9 +149,10 @@ func (h *bip32CmdHandler) importXprivCmd(ctx context.Context) *cobra.Command {
 		},
 	}
 
-	addCmd.Flags().StringVarP(&seed, "seed", "s", "", "seed")
-	addCmd.Flags().StringVarP(&xpriv, "xpriv", "x", "", "master xpriv key")
+	addCmd.Flags().StringVarP(&seed, "seed", "s", "", "seed. hex or encryptedBase64")
+	addCmd.Flags().StringVarP(&xpriv, "xpriv", "x", "", "master xpriv key. string or encryptedBase64")
 	addCmd.Flags().StringVarP(&label, "label", "l", "", "xpriv label. if empty, xpriv has not save.")
+	addCmd.Flags().StringVarP(&encryptSecret, "secret", "s", "", "encrypted secret. base64")
 	addCmd.Flags().BoolVarP(&canExport, "canExport", "c", false, "export flag. if false, importing xpriv can not export.")
 	return addCmd
 }
