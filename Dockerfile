@@ -1,4 +1,4 @@
-FROM golang:1.19.4-bullseye
+FROM golang:1.20.3-bullseye
 
 RUN apt-get update && \
     apt-get -y install libsofthsm2 && \

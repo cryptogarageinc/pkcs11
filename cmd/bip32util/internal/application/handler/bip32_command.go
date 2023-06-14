@@ -152,7 +152,7 @@ func (h *bip32CmdHandler) importXprivCmd(ctx context.Context) *cobra.Command {
 	addCmd.Flags().StringVarP(&seed, "seed", "s", "", "seed. hex or encryptedBase64")
 	addCmd.Flags().StringVarP(&xpriv, "xpriv", "x", "", "master xpriv key. string or encryptedBase64")
 	addCmd.Flags().StringVarP(&label, "label", "l", "", "xpriv label. if empty, xpriv has not save.")
-	addCmd.Flags().StringVarP(&encryptSecret, "secret", "s", "", "encrypted secret. base64")
+	addCmd.Flags().StringVarP(&encryptSecret, "secret", "p", "", "encrypted secret. base64")
 	addCmd.Flags().BoolVarP(&canExport, "canExport", "c", false, "export flag. if false, importing xpriv can not export.")
 	return addCmd
 }
