@@ -7,8 +7,8 @@ all: install generate format lint
 install:
 	$(eval BIN:=$(abspath .bin))
 	mkdir -p ./.bin
-	GOBIN="$(BIN)" go install golang.org/x/tools/cmd/goimports@v0.4.0
-	GOBIN="$(BIN)" go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
+	GOBIN="$(BIN)" go install golang.org/x/tools/cmd/goimports@v0.8.0
+	GOBIN="$(BIN)" go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3
 	$(call install_local,'github.com/golang/mock', 'github.com/golang/mock/mockgen')
 
 .PHONY: generate

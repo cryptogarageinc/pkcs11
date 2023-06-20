@@ -49,15 +49,15 @@ func (mr *MockPkcs11MockRecorder) CloseSession(ctx, session interface{}) *gomock
 }
 
 // CloseSessionAll mocks base method.
-func (m *MockPkcs11) CloseSessionAll(ctx context.Context) {
+func (m *MockPkcs11) CloseSessionAll(ctx context.Context, slotID uint) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "CloseSessionAll", ctx)
+	m.ctrl.Call(m, "CloseSessionAll", ctx, slotID)
 }
 
 // CloseSessionAll indicates an expected call of CloseSessionAll.
-func (mr *MockPkcs11MockRecorder) CloseSessionAll(ctx interface{}) *gomock.Call {
+func (mr *MockPkcs11MockRecorder) CloseSessionAll(ctx, slotID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSessionAll", reflect.TypeOf((*MockPkcs11)(nil).CloseSessionAll), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSessionAll", reflect.TypeOf((*MockPkcs11)(nil).CloseSessionAll), ctx, slotID)
 }
 
 // CreateXprivFromSeed mocks base method.
@@ -165,11 +165,12 @@ func (mr *MockPkcs11MockRecorder) GenerateSignature(ctx, session, privkeyHandle,
 }
 
 // GetCurrentSlot mocks base method.
-func (m *MockPkcs11) GetCurrentSlot() uint {
+func (m *MockPkcs11) GetCurrentSlot() (uint, bool) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCurrentSlot")
 	ret0, _ := ret[0].(uint)
-	return ret0
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
 }
 
 // GetCurrentSlot indicates an expected call of GetCurrentSlot.
@@ -266,19 +267,19 @@ func (mr *MockPkcs11MockRecorder) OpenSession(ctx, pin interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenSession", reflect.TypeOf((*MockPkcs11)(nil).OpenSession), ctx, pin)
 }
 
-// OpenSessionWithPartition mocks base method.
-func (m *MockPkcs11) OpenSessionWithPartition(ctx context.Context, partitionID uint, pin string) (pkcs11.SessionHandle, error) {
+// OpenSessionWithPartitionAndSlot mocks base method.
+func (m *MockPkcs11) OpenSessionWithPartitionAndSlot(ctx context.Context, slotID, partitionID uint, pin string) (pkcs11.SessionHandle, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "OpenSessionWithPartition", ctx, partitionID, pin)
+	ret := m.ctrl.Call(m, "OpenSessionWithPartitionAndSlot", ctx, slotID, partitionID, pin)
 	ret0, _ := ret[0].(pkcs11.SessionHandle)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// OpenSessionWithPartition indicates an expected call of OpenSessionWithPartition.
-func (mr *MockPkcs11MockRecorder) OpenSessionWithPartition(ctx, partitionID, pin interface{}) *gomock.Call {
+// OpenSessionWithPartitionAndSlot indicates an expected call of OpenSessionWithPartitionAndSlot.
+func (mr *MockPkcs11MockRecorder) OpenSessionWithPartitionAndSlot(ctx, slotID, partitionID, pin interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenSessionWithPartition", reflect.TypeOf((*MockPkcs11)(nil).OpenSessionWithPartition), ctx, partitionID, pin)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenSessionWithPartitionAndSlot", reflect.TypeOf((*MockPkcs11)(nil).OpenSessionWithPartitionAndSlot), ctx, slotID, partitionID, pin)
 }
 
 // ReLogin mocks base method.
