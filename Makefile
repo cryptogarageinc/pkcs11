@@ -1,5 +1,9 @@
 current_dir = $(shell pwd)
 
+golangci_version = v1.53.3
+goimports_version = v0.12.0
+yamlfmt_version = v0.9.0
+
 .PHONY: all
 all: install generate format lint
 
@@ -7,8 +11,9 @@ all: install generate format lint
 install:
 	$(eval BIN:=$(abspath .bin))
 	mkdir -p ./.bin
-	GOBIN="$(BIN)" go install golang.org/x/tools/cmd/goimports@v0.8.0
-	GOBIN="$(BIN)" go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3
+	GOBIN="$(BIN)" go install golang.org/x/tools/cmd/goimports@${goimports_version}
+	GOBIN="$(BIN)" go install github.com/golangci/golangci-lint/cmd/golangci-lint@${golangci_version}
+	GOBIN="$(BIN)" go install github.com/google/yamlfmt/cmd/yamlfmt@${yamlfmt_version}
 	$(call install_local,'github.com/golang/mock', 'github.com/golang/mock/mockgen')
 
 .PHONY: generate
@@ -19,6 +24,7 @@ generate:
 .PHONY: format
 format:
 	./.bin/goimports -w .
+	./.bin/yamlfmt
 	go mod tidy
 
 .PHONY: lint
