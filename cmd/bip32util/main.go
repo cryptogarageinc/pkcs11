@@ -10,7 +10,7 @@ import (
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/pkg/log"
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/pkg/zapcontext"
 
-	env "github.com/caarlos0/env/v6"
+	env "github.com/caarlos0/env/v9"
 	"go.uber.org/zap"
 )
 
