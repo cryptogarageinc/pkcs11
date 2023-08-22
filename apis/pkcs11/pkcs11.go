@@ -20,8 +20,8 @@ var (
 
 // go generate comment
 //go:generate -command mkdir mock
-//go:generate go run github.com/golang/mock/mockgen@v1.6.0 -source pkcs11.go -destination mock/pkcs11.go -package mock
-//go:generate go run golang.org/x/tools/cmd/goimports@v0.4.0 -w mock/pkcs11.go
+//go:generate mockgen -source pkcs11.go -destination mock/pkcs11.go -package mock
+//go:generate goimports -w mock/pkcs11.go
 
 type Pkcs11 interface {
 	GetPkcs11Context() *pkcs11.Ctx
