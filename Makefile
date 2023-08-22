@@ -14,7 +14,7 @@ install:
 	GOBIN="$(BIN)" go install golang.org/x/tools/cmd/goimports@${goimports_version}
 	GOBIN="$(BIN)" go install github.com/golangci/golangci-lint/cmd/golangci-lint@${golangci_version}
 	GOBIN="$(BIN)" go install github.com/google/yamlfmt/cmd/yamlfmt@${yamlfmt_version}
-	$(call install_local,'github.com/golang/mock', 'github.com/golang/mock/mockgen')
+	$(call install_local,'go.uber.org/mock', 'go.uber.org/mock/mockgen')
 
 .PHONY: generate
 generate:

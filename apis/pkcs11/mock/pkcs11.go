@@ -10,7 +10,7 @@ import (
 
 	pkcs11 "github.com/cryptogarageinc/pkcs11"
 	pkcs110 "github.com/cryptogarageinc/pkcs11/apis/pkcs11"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockPkcs11 is a mock of Pkcs11 interface.
