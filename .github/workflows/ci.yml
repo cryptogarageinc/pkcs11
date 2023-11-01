@@ -16,8 +16,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-22.04', 'ubuntu-20.04']
-        go: ['~1.21.0', '~1.20.0']
+        os: ['ubuntu-22.04']
+        go: ['~1.21.0']
 
     steps:
       - name: Check out code
