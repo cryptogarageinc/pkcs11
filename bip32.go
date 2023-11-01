@@ -121,6 +121,13 @@ import "C"
 
 // CKK_BIP32 should be assigned to the CKA_KEY_TYPE attribute of templates for derived keys
 const CKK_BIP32 = CKK_VENDOR_DEFINED + 0x14
+const CKA_DERIVE_TEMPLATE = (CKF_ARRAY_ATTRIBUTE | 0x00000213)
+const CKA_BIP32_VERSION_BYTES = (CKA_VENDOR_DEFINED | 0x1101)
+const CKA_BIP32_CHILD_INDEX = (CKA_VENDOR_DEFINED | 0x1102)
+const CKA_BIP32_CHILD_DEPTH = (CKA_VENDOR_DEFINED | 0x1103)
+const CKA_BIP32_ID = (CKA_VENDOR_DEFINED | 0x1104)
+const CKA_BIP32_FINGERPRINT = (CKA_VENDOR_DEFINED | 0x1105)
+const CKA_BIP32_PARENT_FINGERPRINT = (CKA_VENDOR_DEFINED | 0x1106)
 
 func (c *Ctx) DeriveBIP32MasterKeys(sh SessionHandle, basekey ObjectHandle, publicAttr []*Attribute, privateAttr []*Attribute) (ObjectHandle, ObjectHandle, error) {
 	var publicKey C.CK_OBJECT_HANDLE
@@ -142,8 +149,8 @@ func (c *Ctx) DeriveBIP32ChildKeys(sh SessionHandle, basekey ObjectHandle, publi
 	privateAttrArena, privateAttrC, privateAttrLen := cAttributeList(privateAttr)
 	defer privateAttrArena.Free()
 	cPath := make([]C.CK_ULONG, len(path))
-	for i := 0; i < len(path); i++ {
-		cPath[i] = C.CK_ULONG(path[i])
+	for i, pathVal := range path {
+		cPath[i] = C.CK_ULONG(pathVal)
 	}
 	e := C.DeriveBIP32Child(c.ctx, C.CK_SESSION_HANDLE(sh), C.CK_OBJECT_HANDLE(basekey), publicAttrC, publicAttrLen, privateAttrC, privateAttrLen, &cPath[0], C.CK_ULONG(len(path)), &publicKey, &privateKey, &pathErrorIndex)
 	return ObjectHandle(publicKey), ObjectHandle(privateKey), uint(pathErrorIndex), toError(e)

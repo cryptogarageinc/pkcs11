@@ -41,6 +41,15 @@ func (a *arena) Allocate(obj []byte) (C.CK_VOID_PTR, C.CK_ULONG) {
 	return C.CK_VOID_PTR(cobj), C.CK_ULONG(len(obj))
 }
 
+func (a *arena) AllocateForList(ptr []C.CK_ATTRIBUTE) (C.CK_VOID_PTR, C.CK_ULONG) {
+	const intSize = (32 << (^uint(0) >> 63)) / 8
+	const ckAttributeSize = 8 + intSize*2
+	cobj := C.calloc(C.size_t(ckAttributeSize), 1)
+	*a = append(*a, cobj)
+	C.memmove(cobj, unsafe.Pointer(&ptr[0]), C.size_t(ckAttributeSize))
+	return C.CK_VOID_PTR(cobj), C.CK_ULONG(ckAttributeSize)
+}
+
 func (a arena) Free() {
 	for _, p := range a {
 		C.free(p)
@@ -156,8 +165,9 @@ type SessionInfo struct {
 
 // Attribute holds an attribute type/value combination.
 type Attribute struct {
-	Type  uint
-	Value []byte
+	Type   uint
+	Value  []byte
+	Childs []*Attribute
 }
 
 // NewAttribute allocates a Attribute and returns a pointer to it.
@@ -190,6 +200,8 @@ func NewAttribute(typ uint, x interface{}) *Attribute {
 		a.Value = v
 	case time.Time: // for CKA_DATE
 		a.Value = cDate(v)
+	case []*Attribute:
+		a.Childs = v
 	default:
 		panic("pkcs11: unhandled attribute type")
 	}
@@ -198,21 +210,43 @@ func NewAttribute(typ uint, x interface{}) *Attribute {
 
 // cAttribute returns the start address and the length of an attribute list.
 func cAttributeList(a []*Attribute) (arena, C.CK_ATTRIBUTE_PTR, C.CK_ULONG) {
-	var arena arena
+	arena, pa := cAttributeListInner(a)
+	return arena, &pa[0], C.CK_ULONG(len(a))
+}
+
+// cAttribute returns the start address and the length of an attribute list.
+func cAttributeListInner(a []*Attribute) (arena, []C.CK_ATTRIBUTE) {
+	var retArena arena
 	if len(a) == 0 {
-		return nil, nil, 0
+		return nil, nil
 	}
+	childArenas := make([]arena, 0)
 	pa := make([]C.CK_ATTRIBUTE, len(a))
 	for i, attr := range a {
-		pa[i]._type = C.CK_ATTRIBUTE_TYPE(attr.Type)
-		if len(attr.Value) != 0 {
-			buf, len := arena.Allocate(attr.Value)
+		if len(attr.Childs) > 0 {
+			childArena, arr := cAttributeListInner(attr.Childs)
+			pa[i]._type = C.CK_ATTRIBUTE_TYPE(attr.Type)
 			// field is unaligned on windows so this has to call into C
+			buf, len := retArena.AllocateForList(arr)
 			C.putAttributePval(&pa[i], buf)
 			pa[i].ulValueLen = len
+			childArenas = append(childArenas, childArena)
+		} else {
+			pa[i]._type = C.CK_ATTRIBUTE_TYPE(attr.Type)
+			if len(attr.Value) != 0 {
+				buf, len := retArena.Allocate(attr.Value)
+				// field is unaligned on windows so this has to call into C
+				C.putAttributePval(&pa[i], buf)
+				pa[i].ulValueLen = len
+			}
 		}
 	}
-	return arena, &pa[0], C.CK_ULONG(len(a))
+	if len(childArenas) > 0 {
+		for _, childArena := range childArenas {
+			retArena = append(retArena, childArena...)
+		}
+	}
+	return retArena, pa
 }
 
 func cDate(t time.Time) []byte {

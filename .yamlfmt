@@ -3,7 +3,6 @@ line_ending: 'lf'
 doublestar: true
 include:
   - '.github/**/*.{yaml,yml}'
-  - './docker-*.{yaml,yml}'
   - './.golangci.yml'
   - './cmd/bip32util/.golangci.yml'
 

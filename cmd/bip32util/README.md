@@ -22,4 +22,7 @@ export PARTITION_ID="0"
 
 ```bash
 bip32util --help
+
+# example
+bip32util importxpriv -c=false -l=<label-name> -s=<seed-hex>
 ```
