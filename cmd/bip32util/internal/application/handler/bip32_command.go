@@ -47,6 +47,7 @@ func (h *bip32CmdHandler) ExecCommand(ctx context.Context) error {
 	rootCmd.AddCommand(h.exportXprivCmd(ctx))
 	rootCmd.AddCommand(h.findKeyCmd(ctx))
 	rootCmd.AddCommand(h.signCmd(ctx))
+	rootCmd.AddCommand(h.verifyCmd(ctx))
 	rootCmd.AddCommand(h.sleepCmd(ctx))
 	rootCmd.AddCommand(h.manyDeriveCmd(ctx))
 
@@ -269,6 +270,49 @@ func (h *bip32CmdHandler) signCmd(ctx context.Context) *cobra.Command {
 	addCmd.Flags().StringVarP(&label, "label", "l", "", "xpriv label.")
 	addCmd.Flags().StringVarP(&path, "path", "p", "", "bip32 path.")
 	addCmd.Flags().StringVarP(&message, "message", "m", "", "message hash.")
+	return addCmd
+}
+
+func (h *bip32CmdHandler) verifyCmd(ctx context.Context) *cobra.Command {
+	var label, path, message, signature string
+	addCmd := &cobra.Command{
+		Use:   "verify",
+		Short: "verify",
+		Long:  "verify",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if h.pkcs11Service == nil {
+				return errors.New("failed to create the pkcs11 service.")
+			}
+			if label == "" {
+				return errors.New("label is required")
+			}
+			if message == "" {
+				return errors.New("message is required")
+			}
+			if signature == "" {
+				return errors.New("signature is required")
+			}
+			msgBytes, err := hex.DecodeString(message)
+			if err != nil {
+				return err
+			}
+			sigBytes, err := hex.DecodeString(signature)
+			if err != nil {
+				return err
+			}
+			err = h.pkcs11Service.VerifyByDeriveKey(ctx, label, path, msgBytes, sigBytes)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("[verify] success\n")
+			return nil
+		},
+	}
+
+	addCmd.Flags().StringVarP(&label, "label", "l", "", "base key label.")
+	addCmd.Flags().StringVarP(&path, "path", "p", "", "bip32 path.")
+	addCmd.Flags().StringVarP(&message, "message", "m", "", "message hash hex.")
+	addCmd.Flags().StringVarP(&signature, "signature", "s", "", "signature hex.")
 	return addCmd
 }
 

@@ -88,6 +88,14 @@ type Pkcs11 interface {
 		pubkeyHandle pkcs11.ObjectHandle,
 	) (pubkey PublicKeyBytes, err error)
 
+	Verify(
+		ctx context.Context,
+		session pkcs11.SessionHandle,
+		pubkeyHandle pkcs11.ObjectHandle,
+		data []byte,
+		signature []byte,
+	) (err error)
+
 	ImportSeed(
 		ctx context.Context,
 		session pkcs11.SessionHandle,
@@ -315,6 +323,7 @@ func (p *pkcs11Api) CreateXprivFromSeed(
 	xprivLabel string,
 	canExport bool,
 ) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error) {
+	logInfof(ctx, "call CreateXprivFromSeed(xpub=%s, xprv=%s, export=%v)", xpubLabel, xprivLabel, canExport)
 	var xpubToken, xprivToken bool
 	if xpubLabel != "" {
 		if exist, err := p.existLabel(ctx, session, xpubLabel); err != nil {
@@ -338,7 +347,6 @@ func (p *pkcs11Api) CreateXprivFromSeed(
 	}
 	pubKeyAttr := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, xpubToken),
-		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_BIP32),
 		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_DERIVE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
@@ -356,6 +364,37 @@ func (p *pkcs11Api) CreateXprivFromSeed(
 	return pubkeyHandle, privkeyHandle, nil
 }
 
+func (p *pkcs11Api) DumpXprvkey(
+	ctx context.Context,
+	session pkcs11.SessionHandle,
+	privkeyHandle pkcs11.ObjectHandle,
+) error {
+	getAttributes := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, false),
+		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_DERIVE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
+		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, false),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, "dummy"),
+		pkcs11.NewAttribute(pkcs11.CKA_BIP32_CHILD_INDEX, 0),
+		pkcs11.NewAttribute(pkcs11.CKA_BIP32_CHILD_DEPTH, 0),
+		pkcs11.NewAttribute(pkcs11.CKA_BIP32_VERSION_BYTES, 0),
+		pkcs11.NewAttribute(pkcs11.CKA_BIP32_FINGERPRINT, 0),
+		pkcs11.NewAttribute(pkcs11.CKA_BIP32_PARENT_FINGERPRINT, 0),
+	}
+	attrs, err := p.pkcs11Obj.GetAttributeValue(session, privkeyHandle, getAttributes)
+	if err != nil {
+		err = errors.WithStack(err)
+		logError(ctx, "GetAttributeValue", err)
+		return err
+	}
+	for i, attr := range attrs {
+		logInfof(ctx, "GetAttributeValue[%d] type=%v, val=%v", i, attr.Type, attr.Value)
+	}
+	return nil
+}
+
 func (p *pkcs11Api) DeriveKeyPair(
 	ctx context.Context,
 	session pkcs11.SessionHandle,
@@ -364,22 +403,18 @@ func (p *pkcs11Api) DeriveKeyPair(
 ) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error) {
 	pubKeyAttr := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, false),
-		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_BIP32),
 		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_ENCRYPT, true),
 		pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
-		pkcs11.NewAttribute(pkcs11.CKA_DERIVE, false),
 		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
 	}
 	privKeyAttr := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, false),
-		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_BIP32),
 		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_DECRYPT, true),
 		pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
-		pkcs11.NewAttribute(pkcs11.CKA_DERIVE, false),
+		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
-		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, false),
 	}
 	pubkeyHandle, privkeyHandle, pathErrIdx, err := p.pkcs11Obj.DeriveBIP32ChildKeys(
 		session, masterXprivHandle, pubKeyAttr, privKeyAttr, path)
@@ -447,6 +482,22 @@ func (p *pkcs11Api) GetPublicKey(
 	}
 	logInfo(ctx, "GetPublicKey success")
 	return pubkey, err
+}
+
+func (p *pkcs11Api) Verify(
+	ctx context.Context,
+	session pkcs11.SessionHandle,
+	pubkeyHandle pkcs11.ObjectHandle,
+	data []byte,
+	signature []byte,
+) (err error) {
+	err = p.pkcs11Obj.VerifyInit(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_ECDSA, nil)}, pubkeyHandle)
+	if err != nil {
+		return err
+	}
+	err = p.pkcs11Obj.Verify(session, data, signature)
+	logInfof(ctx, "Verify finish, %v", err)
+	return err
 }
 
 func (p *pkcs11Api) ImportSeed(
@@ -732,7 +783,6 @@ func (p *pkcs11Api) getAesTemplate() ([]*pkcs11.Attribute, []*pkcs11.Mechanism) 
 func (p *pkcs11Api) getMasterXprivTemplate(label string, token, extractable bool) []*pkcs11.Attribute {
 	keyTemplate := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, token),
-		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_BIP32),
 		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_DERIVE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),

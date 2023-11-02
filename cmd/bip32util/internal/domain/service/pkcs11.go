@@ -51,6 +51,13 @@ type Pkcs11 interface {
 		xprivLabel string,
 		path string,
 	) (publicKey []byte, err error)
+	VerifyByDeriveKey(
+		ctx context.Context,
+		xprivLabel string,
+		path string,
+		message []byte,
+		signature []byte,
+	) (err error)
 	DeriveKeysByLabel(
 		ctx context.Context,
 		xprivLabel string,
@@ -229,6 +236,31 @@ func (s *pkcs11Service) GetPublicKeyByDeriveKey(
 		return nil, err
 	}
 	return pk.ToSlice(), nil
+}
+
+func (s *pkcs11Service) VerifyByDeriveKey(
+	ctx context.Context,
+	xprivLabel string,
+	path string,
+	message []byte,
+	signature []byte,
+) (err error) {
+	keyHdl, err := s.pkcs11Api.FindKeyByLabel(ctx, s.session, xprivLabel)
+	if err != nil {
+		return err
+	}
+	if path != "" {
+		pkHdl, _, err := s.DeriveKeyPair(ctx, s.session, keyHdl, path)
+		if err != nil {
+			return err
+		}
+		keyHdl = pkHdl
+	}
+	err = s.pkcs11Api.Verify(ctx, s.session, keyHdl, message, signature)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *pkcs11Service) DeriveKeysByLabel(

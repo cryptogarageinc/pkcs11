@@ -6,11 +6,13 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/pkg/log"
 	"github.com/cryptogarageinc/pkcs11/cmd/bip32util/internal/pkg/zapcontext"
 
-	env "github.com/caarlos0/env/v9"
+	env "github.com/caarlos0/env/v10"
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
@@ -26,6 +28,12 @@ type environment struct {
 }
 
 func main() {
+	if _, statErr := os.Stat(".env"); statErr == nil {
+		// If exist dotenv, load dotenv.
+		if err := godotenv.Load(); err != nil {
+			panic(err)
+		}
+	}
 	envObj := &environment{}
 	if err := env.Parse(envObj); err != nil {
 		panic(err)

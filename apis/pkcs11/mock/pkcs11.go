@@ -295,3 +295,17 @@ func (mr *MockPkcs11MockRecorder) ReLogin(ctx, session, pin interface{}) *gomock
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReLogin", reflect.TypeOf((*MockPkcs11)(nil).ReLogin), ctx, session, pin)
 }
+
+// Verify mocks base method.
+func (m *MockPkcs11) Verify(ctx context.Context, session pkcs11.SessionHandle, pubkeyHandle pkcs11.ObjectHandle, data, signature []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Verify", ctx, session, pubkeyHandle, data, signature)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Verify indicates an expected call of Verify.
+func (mr *MockPkcs11MockRecorder) Verify(ctx, session, pubkeyHandle, data, signature interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Verify", reflect.TypeOf((*MockPkcs11)(nil).Verify), ctx, session, pubkeyHandle, data, signature)
+}
