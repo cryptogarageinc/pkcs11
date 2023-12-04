@@ -1,7 +1,7 @@
 current_dir = $(shell pwd)
 
-golangci_version = v1.55.1
-goimports_version = v0.14.0
+golangci_version = v1.55.2
+goimports_version = v0.16.0
 yamlfmt_version = v0.9.0
 
 .PHONY: all
