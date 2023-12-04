@@ -282,6 +282,21 @@ func (mr *MockPkcs11MockRecorder) OpenSessionWithPartitionAndSlot(ctx, slotID, p
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenSessionWithPartitionAndSlot", reflect.TypeOf((*MockPkcs11)(nil).OpenSessionWithPartitionAndSlot), ctx, slotID, partitionID, pin)
 }
 
+// OpenSessionWithSlot mocks base method.
+func (m *MockPkcs11) OpenSessionWithSlot(ctx context.Context, slotID uint, pin string) (pkcs11.SessionHandle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "OpenSessionWithSlot", ctx, slotID, pin)
+	ret0, _ := ret[0].(pkcs11.SessionHandle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// OpenSessionWithSlot indicates an expected call of OpenSessionWithSlot.
+func (mr *MockPkcs11MockRecorder) OpenSessionWithSlot(ctx, slotID, pin interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenSessionWithSlot", reflect.TypeOf((*MockPkcs11)(nil).OpenSessionWithSlot), ctx, slotID, pin)
+}
+
 // ReLogin mocks base method.
 func (m *MockPkcs11) ReLogin(ctx context.Context, session pkcs11.SessionHandle, pin string) error {
 	m.ctrl.T.Helper()
