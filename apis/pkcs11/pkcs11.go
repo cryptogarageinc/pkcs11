@@ -35,6 +35,11 @@ type Pkcs11 interface {
 		pin string,
 	) (session pkcs11.SessionHandle, err error)
 	// OpenSessionWithPartition creates a session for a partition, and login an user.
+	OpenSessionWithSlot(
+		ctx context.Context,
+		slotID uint,
+		pin string,
+	) (session pkcs11.SessionHandle, err error)
 	OpenSessionWithPartitionAndSlot(
 		ctx context.Context,
 		slotID uint,
@@ -199,6 +204,14 @@ func (p *pkcs11Api) OpenSession(
 	pin string,
 ) (session pkcs11.SessionHandle, err error) {
 	return p.openSession(ctx, nil, nil, pin)
+}
+
+func (p *pkcs11Api) OpenSessionWithSlot(
+	ctx context.Context,
+	slotID uint,
+	pin string,
+) (session pkcs11.SessionHandle, err error) {
+	return p.openSession(ctx, &slotID, nil, pin)
 }
 
 func (p *pkcs11Api) OpenSessionWithPartitionAndSlot(
