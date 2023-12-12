@@ -13,8 +13,15 @@ import (
 const MechanismTypeEcdsa uint = pkcs11.CKM_ECDSA
 
 var (
-	CurveSecp256k1       = []byte{0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x0a}
-	ErrLabelNotFound     = stderrors.New("target label is empty")
+	// EC Curve: secp256k1
+	CurveSecp256k1 = []byte{0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x0a}
+	// EC Curve: prime256k1
+	CurvePrime256v1 = []byte{0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07}
+	// EC Curve: ed25519
+	CurveEd25519 = []byte{0x06, 0x09, 0x2B, 0x06, 0x01, 0x04, 0x01, 0xDA, 0x47, 0x0F, 0x01}
+	// Error: label not found
+	ErrLabelNotFound = stderrors.New("target label is empty")
+	// Error: lavel already exist
 	ErrLabelAlreadyExist = stderrors.New("target label is already exist")
 )
 
@@ -64,6 +71,20 @@ type Pkcs11 interface {
 		label string,
 		length uint,
 	) (seedHandle pkcs11.ObjectHandle, err error)
+	GenerateKeyPairWithCurve(
+		ctx context.Context,
+		session pkcs11.SessionHandle,
+		namedCurveOid []byte,
+		pubkeyLabel,
+		privkeyLabel string,
+		canExport bool,
+	) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error)
+	DestroyKey(
+		ctx context.Context,
+		session pkcs11.SessionHandle,
+		keyHandle pkcs11.ObjectHandle,
+	) error
+
 	CreateXprivFromSeed(
 		ctx context.Context,
 		session pkcs11.SessionHandle,
@@ -72,12 +93,20 @@ type Pkcs11 interface {
 		xprivLabel string, // if not empty, set to token=true.
 		canExport bool,
 	) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error)
-	DeriveKeyPair(
+	DeriveKeyPairWithBIP32(
 		ctx context.Context,
 		session pkcs11.SessionHandle,
 		masterXprivHandle pkcs11.ObjectHandle,
 		path []uint32,
 	) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error)
+	/*
+		DeriveKey(
+			ctx context.Context,
+			session pkcs11.SessionHandle,
+			baseKeyHandle pkcs11.ObjectHandle,
+			data []byte,
+		) (keyHandle pkcs11.ObjectHandle, err error)
+	*/
 
 	GenerateSignature(
 		ctx context.Context,
@@ -328,6 +357,83 @@ func (p *pkcs11Api) GenerateSeed(
 	return seedHandle, nil
 }
 
+func (p *pkcs11Api) GenerateKeyPairWithCurve(
+	ctx context.Context,
+	session pkcs11.SessionHandle,
+	namedCurveOid []byte,
+	pubkeyLabel,
+	privkeyLabel string,
+	canExport bool,
+) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error) {
+	mech := []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_EC_KEY_PAIR_GEN, nil)}
+	logInfof(ctx, "call GenerateKeyPairWithCurve(xpub=%s, xprv=%s, export=%v)", pubkeyLabel, privkeyLabel, canExport)
+	var pubkeyToken, privkeyToken bool
+	if pubkeyLabel != "" {
+		if exist, err := p.existLabel(ctx, session, pubkeyLabel); err != nil {
+			logError(ctx, "GenerateKeyPairWithCurve.existLabel", err)
+			return 0, 0, err
+		} else if exist {
+			return 0, 0, errors.Wrapf(ErrLabelAlreadyExist,
+				"GenerateKeyPairWithCurve.existLabel,%s", pubkeyLabel)
+		}
+		pubkeyToken = true
+	}
+	if privkeyLabel != "" {
+		if exist, err := p.existLabel(ctx, session, privkeyLabel); err != nil {
+			logError(ctx, "GenerateKeyPairWithCurve.existLabel", err)
+			return 0, 0, err
+		} else if exist {
+			return 0, 0, errors.Wrapf(ErrLabelAlreadyExist,
+				"GenerateKeyPairWithCurve.existLabel,%s", privkeyLabel)
+		}
+		privkeyToken = true
+	}
+	pubKeyAttr := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_EC_PARAMS, namedCurveOid),
+		pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, pubkeyToken),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, pubkeyLabel),
+		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
+	}
+	privKeyAttr := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, privkeyToken),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, privkeyLabel),
+		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_DERIVE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
+		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, canExport),
+	}
+
+	pubkeyHandle, privkeyHandle, err = p.pkcs11Obj.GenerateKeyPair(
+		session, mech, pubKeyAttr, privKeyAttr)
+	if err != nil {
+		err = errors.WithStack(err)
+		logError(ctx, "GenerateKeyPairWithCurve", err)
+		return 0, 0, err
+	}
+	logInfo(ctx, "GenerateKeyPairWithCurve success")
+	return pubkeyHandle, privkeyHandle, nil
+}
+
+func (p *pkcs11Api) DestroyKey(
+	ctx context.Context,
+	session pkcs11.SessionHandle,
+	keyHandle pkcs11.ObjectHandle,
+) error {
+	logInfof(ctx, "call DestroyKey(key=%d)", keyHandle)
+	err := p.pkcs11Obj.DestroyObject(session, keyHandle)
+	if err != nil {
+		err = errors.WithStack(err)
+		logError(ctx, "DestroyKey", err)
+		return err
+	}
+	logInfo(ctx, "DestroyKey success")
+	return nil
+}
+
 func (p *pkcs11Api) CreateXprivFromSeed(
 	ctx context.Context,
 	session pkcs11.SessionHandle,
@@ -408,7 +514,7 @@ func (p *pkcs11Api) DumpXprvkey(
 	return nil
 }
 
-func (p *pkcs11Api) DeriveKeyPair(
+func (p *pkcs11Api) DeriveKeyPairWithBIP32(
 	ctx context.Context,
 	session pkcs11.SessionHandle,
 	masterXprivHandle pkcs11.ObjectHandle,
@@ -433,10 +539,10 @@ func (p *pkcs11Api) DeriveKeyPair(
 		session, masterXprivHandle, pubKeyAttr, privKeyAttr, path)
 	if err != nil {
 		err = errors.Wrapf(err, "pathErrIdx: %d", pathErrIdx)
-		logError(ctx, "DeriveKeyPair", err)
+		logError(ctx, "DeriveKeyPairWithBIP32", err)
 		return 0, 0, err
 	}
-	logInfo(ctx, "DeriveKeyPair success")
+	logInfo(ctx, "DeriveKeyPairWithBIP32 success")
 	return pubkeyHandle, privkeyHandle, nil
 }
 
