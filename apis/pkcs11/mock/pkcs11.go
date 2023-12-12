@@ -76,20 +76,34 @@ func (mr *MockPkcs11MockRecorder) CreateXprivFromSeed(ctx, session, seedHandle, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateXprivFromSeed", reflect.TypeOf((*MockPkcs11)(nil).CreateXprivFromSeed), ctx, session, seedHandle, xpubLabel, xprivLabel, canExport)
 }
 
-// DeriveKeyPair mocks base method.
-func (m *MockPkcs11) DeriveKeyPair(ctx context.Context, session pkcs11.SessionHandle, masterXprivHandle pkcs11.ObjectHandle, path []uint32) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
+// DeriveKeyPairWithBIP32 mocks base method.
+func (m *MockPkcs11) DeriveKeyPairWithBIP32(ctx context.Context, session pkcs11.SessionHandle, masterXprivHandle pkcs11.ObjectHandle, path []uint32) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeriveKeyPair", ctx, session, masterXprivHandle, path)
+	ret := m.ctrl.Call(m, "DeriveKeyPairWithBIP32", ctx, session, masterXprivHandle, path)
 	ret0, _ := ret[0].(pkcs11.ObjectHandle)
 	ret1, _ := ret[1].(pkcs11.ObjectHandle)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
 
-// DeriveKeyPair indicates an expected call of DeriveKeyPair.
-func (mr *MockPkcs11MockRecorder) DeriveKeyPair(ctx, session, masterXprivHandle, path interface{}) *gomock.Call {
+// DeriveKeyPairWithBIP32 indicates an expected call of DeriveKeyPairWithBIP32.
+func (mr *MockPkcs11MockRecorder) DeriveKeyPairWithBIP32(ctx, session, masterXprivHandle, path interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeriveKeyPair", reflect.TypeOf((*MockPkcs11)(nil).DeriveKeyPair), ctx, session, masterXprivHandle, path)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeriveKeyPairWithBIP32", reflect.TypeOf((*MockPkcs11)(nil).DeriveKeyPairWithBIP32), ctx, session, masterXprivHandle, path)
+}
+
+// DestroyKey mocks base method.
+func (m *MockPkcs11) DestroyKey(ctx context.Context, session pkcs11.SessionHandle, keyHandle pkcs11.ObjectHandle) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DestroyKey", ctx, session, keyHandle)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DestroyKey indicates an expected call of DestroyKey.
+func (mr *MockPkcs11MockRecorder) DestroyKey(ctx, session, keyHandle interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyKey", reflect.TypeOf((*MockPkcs11)(nil).DestroyKey), ctx, session, keyHandle)
 }
 
 // ExportXpriv mocks base method.
@@ -132,6 +146,22 @@ func (m *MockPkcs11) FindKeyByLabel(ctx context.Context, session pkcs11.SessionH
 func (mr *MockPkcs11MockRecorder) FindKeyByLabel(ctx, session, label interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindKeyByLabel", reflect.TypeOf((*MockPkcs11)(nil).FindKeyByLabel), ctx, session, label)
+}
+
+// GenerateKeyPairWithCurve mocks base method.
+func (m *MockPkcs11) GenerateKeyPairWithCurve(ctx context.Context, session pkcs11.SessionHandle, namedCurveOid []byte, pubkeyLabel, privkeyLabel string, canExport bool) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateKeyPairWithCurve", ctx, session, namedCurveOid, pubkeyLabel, privkeyLabel, canExport)
+	ret0, _ := ret[0].(pkcs11.ObjectHandle)
+	ret1, _ := ret[1].(pkcs11.ObjectHandle)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GenerateKeyPairWithCurve indicates an expected call of GenerateKeyPairWithCurve.
+func (mr *MockPkcs11MockRecorder) GenerateKeyPairWithCurve(ctx, session, namedCurveOid, pubkeyLabel, privkeyLabel, canExport interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateKeyPairWithCurve", reflect.TypeOf((*MockPkcs11)(nil).GenerateKeyPairWithCurve), ctx, session, namedCurveOid, pubkeyLabel, privkeyLabel, canExport)
 }
 
 // GenerateSeed mocks base method.
