@@ -51,6 +51,9 @@ setup-docker:
 test-docker:
 	docker run -it --rm -v ${current_dir}:/workspace cryptogarageinc/pkcs11:latest make build test test-api
 
+test-api-docker:
+	docker run -it --rm -v ${current_dir}:/workspace cryptogarageinc/pkcs11:latest make build test-api
+
 define install_local
 	$(eval BIN:=$(abspath .bin))
 	grep -E $1 go.mod > module.txt

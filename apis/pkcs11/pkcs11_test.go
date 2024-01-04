@@ -147,7 +147,8 @@ func TestPkcs11ApiWithCurvePrime256v1(t *testing.T) {
 
 	// create key
 	var skHdl, pkHdl pkcs11.ObjectHandle
-	pkHdl, skHdl, err = api.GenerateKeyPairWithCurve(ctx, session, CurvePrime256v1, pkLabel, skLabel, false)
+	mech := pkcs11.NewMechanism(pkcs11.CKM_EC_KEY_PAIR_GEN, nil)
+	pkHdl, skHdl, err = api.GenerateKeyPairWithCurve(ctx, session, mech, CurvePrime256v1, pkcs11.CKK_ECDSA, pkLabel, skLabel, false)
 	assert.NoError(t, err)
 	assert.NotEqual(t, pkHdl, 0)
 	assert.NotEqual(t, skHdl, 0)
@@ -184,6 +185,66 @@ func TestPkcs11ApiWithCurvePrime256v1(t *testing.T) {
 		"04000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 	assert.Equal(t, len(pk), 65)
 }
+
+/*
+func TestPkcs11ApiWithCurveEd25519(t *testing.T) {
+	p := getPkcs11()
+	if p == nil {
+		t.Fatal("Failed to init pkcs11")
+	}
+	defer p.Destroy()
+
+	api := NewPkcs11(p, CurveSecp256k1)
+	ctx := context.Background()
+	err := api.Initialize(ctx)
+	assert.NoError(t, err)
+	defer api.Finalize(ctx)
+
+	session, err := api.OpenSession(ctx, pin)
+	assert.NoError(t, err)
+	defer api.CloseSession(ctx, session)
+
+	// create key
+	var skHdl, pkHdl pkcs11.ObjectHandle
+	mech := pkcs11.NewMechanism(pkcs11.CKM_EC_EDWARDS_KEY_PAIR_GEN, nil)
+	pkHdl, skHdl, err = api.GenerateKeyPairWithCurve(ctx, session, mech, nil, pkcs11.CKK_EC_EDWARDS, pkLabel, skLabel, false)
+	assert.NoError(t, err)
+	assert.NotEqual(t, pkHdl, 0)
+	assert.NotEqual(t, skHdl, 0)
+	if err == nil {
+		defer func() {
+			err := api.DestroyKey(ctx, session, skHdl)
+			assert.NoError(t, err)
+			err = api.DestroyKey(ctx, session, pkHdl)
+			assert.NoError(t, err)
+		}()
+	}
+
+	skHdl2, err := api.FindKeyByLabel(ctx, session, skLabel)
+	assert.NoError(t, err)
+	assert.Equal(t, skHdl, skHdl2)
+
+	// sign key
+	testHashByte, err := hex.DecodeString(testHash)
+	assert.NoError(t, err)
+	sig, err := api.GenerateSignature(ctx, session, skHdl, MechanismTypeEddsa, testHashByte)
+	assert.NoError(t, err)
+	sigStr := sig.ToHex()
+	fmt.Printf("sig: %s\n", sigStr)
+	assert.NotEqual(t, sigStr,
+		"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	assert.Equal(t, len(sig), 64)
+
+	// get pubkey
+	pk, err := api.GetPublicKey(ctx, session, pkHdl)
+	assert.NoError(t, err)
+	pkStr := pk.ToHex()
+	fmt.Printf("pk: %s\n", pkStr)
+	assert.NotEqual(t, pkStr,
+		"04000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	assert.Equal(t, len(pk), 65)
+}
+*/
 
 func TestPkcs11Sessions(t *testing.T) {
 	p := getPkcs11()
