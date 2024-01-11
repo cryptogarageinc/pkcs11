@@ -9,8 +9,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Type: ECDSA
-const MechanismTypeEcdsa uint = pkcs11.CKM_ECDSA
+const (
+	// Type: ECDSA
+	MechanismTypeEcdsa uint = pkcs11.CKM_ECDSA
+	// Type: EDDSA
+	MechanismTypeEddsa uint = pkcs11.CKM_EDDSA
+)
 
 var (
 	// EC Curve: secp256k1
@@ -74,7 +78,9 @@ type Pkcs11 interface {
 	GenerateKeyPairWithCurve(
 		ctx context.Context,
 		session pkcs11.SessionHandle,
+		mechanism *pkcs11.Mechanism,
 		namedCurveOid []byte,
+		keyType int,
 		pubkeyLabel,
 		privkeyLabel string,
 		canExport bool,
@@ -99,15 +105,20 @@ type Pkcs11 interface {
 		masterXprivHandle pkcs11.ObjectHandle,
 		path []uint32,
 	) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error)
-	/*
-		DeriveKey(
-			ctx context.Context,
-			session pkcs11.SessionHandle,
-			baseKeyHandle pkcs11.ObjectHandle,
-			data []byte,
-		) (keyHandle pkcs11.ObjectHandle, err error)
-	*/
-
+	DeriveEcKey(
+		ctx context.Context,
+		session pkcs11.SessionHandle,
+		basePrivkeyHandle pkcs11.ObjectHandle,
+		data []byte,
+		valueLen int,
+	) (privkey []byte, err error)
+	ImportEcKey(
+		ctx context.Context,
+		session pkcs11.SessionHandle,
+		privkey []byte,
+		label string,
+		canExport bool,
+	) (privkeyHandle pkcs11.ObjectHandle, err error)
 	GenerateSignature(
 		ctx context.Context,
 		session pkcs11.SessionHandle,
@@ -360,12 +371,14 @@ func (p *pkcs11Api) GenerateSeed(
 func (p *pkcs11Api) GenerateKeyPairWithCurve(
 	ctx context.Context,
 	session pkcs11.SessionHandle,
+	mechanism *pkcs11.Mechanism,
 	namedCurveOid []byte,
+	keyType int,
 	pubkeyLabel,
 	privkeyLabel string,
 	canExport bool,
 ) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error) {
-	mech := []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_EC_KEY_PAIR_GEN, nil)}
+	mech := []*pkcs11.Mechanism{mechanism}
 	logInfof(ctx, "call GenerateKeyPairWithCurve(xpub=%s, xprv=%s, export=%v)", pubkeyLabel, privkeyLabel, canExport)
 	var pubkeyToken, privkeyToken bool
 	if pubkeyLabel != "" {
@@ -388,15 +401,20 @@ func (p *pkcs11Api) GenerateKeyPairWithCurve(
 		}
 		privkeyToken = true
 	}
-	pubKeyAttr := []*pkcs11.Attribute{
-		pkcs11.NewAttribute(pkcs11.CKA_EC_PARAMS, namedCurveOid),
+	pubKeyAttr := append(make([]*pkcs11.Attribute, 0, 7),
+		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, keyType),
 		pkcs11.NewAttribute(pkcs11.CKA_VERIFY, true),
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, pubkeyToken),
 		pkcs11.NewAttribute(pkcs11.CKA_LABEL, pubkeyLabel),
 		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
+	)
+	if len(namedCurveOid) > 0 {
+		pubKeyAttr = append(pubKeyAttr,
+			pkcs11.NewAttribute(pkcs11.CKA_EC_PARAMS, namedCurveOid))
 	}
 	privKeyAttr := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, keyType),
 		pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, privkeyToken),
 		pkcs11.NewAttribute(pkcs11.CKA_LABEL, privkeyLabel),
@@ -546,6 +564,112 @@ func (p *pkcs11Api) DeriveKeyPairWithBIP32(
 	return pubkeyHandle, privkeyHandle, nil
 }
 
+func (p *pkcs11Api) DeriveEcKey(
+	ctx context.Context,
+	session pkcs11.SessionHandle,
+	basePrivkeyHandle pkcs11.ObjectHandle,
+	data []byte,
+	valueLen int,
+) (privkey []byte, err error) {
+	// sharedData := make([]byte, 32)
+	mechData := pkcs11.NewECDH1DeriveParams(pkcs11.CKD_NULL, nil, data)
+	mech := []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_ECDH1_DERIVE, mechData)}
+	logInfo(ctx, "call DeriveKey")
+
+	privKeyAttr := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_SECRET_KEY),
+		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_GENERIC_SECRET),
+		pkcs11.NewAttribute(pkcs11.CKA_VALUE_LEN, valueLen),
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, false),
+		pkcs11.NewAttribute(pkcs11.CKA_SENSITIVE, false),
+		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, true),
+	}
+
+	privkeyHandle, err := p.pkcs11Obj.DeriveKey(
+		session, mech, basePrivkeyHandle, privKeyAttr)
+	if err != nil {
+		err = errors.WithStack(err)
+		logError(ctx, "DeriveKey", err)
+		return nil, err
+	}
+	defer func() {
+		_ = p.pkcs11Obj.DestroyObject(session, privkeyHandle)
+	}()
+
+	template := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_VALUE, nil),
+	}
+	attr, err := p.pkcs11Obj.GetAttributeValue(session, privkeyHandle, template)
+	if err != nil {
+		logError(ctx, "DeriveKey.GetAttributeValue", err)
+		return nil, err
+	}
+	logInfo(ctx, "DeriveKey success")
+	return attr[0].Value, nil
+}
+
+func (p *pkcs11Api) ImportEcKey(
+	ctx context.Context,
+	session pkcs11.SessionHandle,
+	privkey []byte,
+	label string,
+	canExport bool,
+) (privkeyHandle pkcs11.ObjectHandle, err error) {
+	if label != "" {
+		if exist, err := p.existLabel(ctx, session, label); err != nil {
+			logError(ctx, "ImportEcKey.existLabel", err)
+			return 0, err
+		} else if exist {
+			return 0, errors.Wrapf(ErrLabelAlreadyExist,
+				"ImportEcKey.existLabel,%s", label)
+		}
+	}
+	aesTemplate, aesMech := p.getAesTemplate()
+	wrappingKey, err := p.pkcs11Obj.GenerateKey(session, aesMech, aesTemplate)
+	if err != nil {
+		logError(ctx, "ImportEcKey.GenerateKey", err)
+		return 0, errors.Wrap(err, "ImportEcKey failed")
+	}
+
+	iv := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	mech := []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_AES_CBC, iv)}
+	err = p.pkcs11Obj.EncryptInit(session, mech, wrappingKey)
+	if err != nil {
+		logError(ctx, "ImportEcKey.EncryptInit", err)
+		return 0, errors.Wrap(err, "ImportEcKey failed")
+	}
+	encrypted, err := p.pkcs11Obj.Encrypt(session, privkey)
+	if err != nil {
+		logError(ctx, "ImportEcKey.Encrypt", err)
+		return 0, errors.Wrap(err, "ImportEcKey failed")
+	}
+
+	token := false
+	if label != "" {
+		token = true
+	}
+	keyTemplate := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_SECRET_KEY),
+		//pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_GENERIC_SECRET),
+		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, pkcs11.CKK_ECDSA),
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, token),
+		pkcs11.NewAttribute(pkcs11.CKA_DERIVE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
+		pkcs11.NewAttribute(pkcs11.CKA_EXTRACTABLE, canExport),
+		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
+		pkcs11.NewAttribute(pkcs11.CKA_VALUE_LEN, len(privkey)),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, label),
+	}
+	privkeyHandle, err = p.pkcs11Obj.UnwrapKey(
+		session, mech, wrappingKey, encrypted, keyTemplate)
+	if err != nil {
+		logError(ctx, "ImportEcKey.UnwrapKey", err)
+		return 0, errors.Wrap(err, "ImportEcKey failed")
+	}
+	logInfo(ctx, "ImportEcKey success")
+	return privkeyHandle, nil
+}
+
 func (p *pkcs11Api) GenerateSignature(
 	ctx context.Context,
 	session pkcs11.SessionHandle,
@@ -600,6 +724,38 @@ func (p *pkcs11Api) GetPublicKey(
 		return pubkey, err
 	}
 	logInfo(ctx, "GetPublicKey success")
+	return pubkey, err
+}
+
+func (p *pkcs11Api) GetPublicKeyWithPrivkey(
+	ctx context.Context,
+	session pkcs11.SessionHandle,
+	privkeyHandle pkcs11.ObjectHandle,
+) (pubkey PublicKeyBytes, err error) {
+	template := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_KEY_INFO, nil),
+	}
+	attr, err := p.pkcs11Obj.GetAttributeValue(session, privkeyHandle, template)
+	if err != nil {
+		logError(ctx, "GetPublicKeyWithPrivkey.GetAttributeValue", err)
+		return pubkey, err
+	}
+	pubkey = PublicKeyBytes{}
+	switch len(attr[0].Value) {
+	case 33, 65:
+		pubkey = attr[0].Value
+	case 35, 67: // asn1 encoding
+		if _, err := asn1.Unmarshal(attr[0].Value, &pubkey); err != nil {
+			err = errors.Wrap(err, "unmarshal failed")
+			logError(ctx, "GetPublicKeyWithPrivkey", err)
+			return pubkey, err
+		}
+	default:
+		err = errors.Errorf("invalid length, %d", len(attr[0].Value))
+		logError(ctx, "GetPublicKeyWithPrivkey", err)
+		return pubkey, err
+	}
+	logInfo(ctx, "GetPublicKeyWithPrivkey success")
 	return pubkey, err
 }
 

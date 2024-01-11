@@ -76,6 +76,21 @@ func (mr *MockPkcs11MockRecorder) CreateXprivFromSeed(ctx, session, seedHandle, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateXprivFromSeed", reflect.TypeOf((*MockPkcs11)(nil).CreateXprivFromSeed), ctx, session, seedHandle, xpubLabel, xprivLabel, canExport)
 }
 
+// DeriveEcKey mocks base method.
+func (m *MockPkcs11) DeriveEcKey(ctx context.Context, session pkcs11.SessionHandle, basePrivkeyHandle pkcs11.ObjectHandle, data []byte, valueLen int) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeriveEcKey", ctx, session, basePrivkeyHandle, data, valueLen)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeriveEcKey indicates an expected call of DeriveEcKey.
+func (mr *MockPkcs11MockRecorder) DeriveEcKey(ctx, session, basePrivkeyHandle, data, valueLen interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeriveEcKey", reflect.TypeOf((*MockPkcs11)(nil).DeriveEcKey), ctx, session, basePrivkeyHandle, data, valueLen)
+}
+
 // DeriveKeyPairWithBIP32 mocks base method.
 func (m *MockPkcs11) DeriveKeyPairWithBIP32(ctx context.Context, session pkcs11.SessionHandle, masterXprivHandle pkcs11.ObjectHandle, path []uint32) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
 	m.ctrl.T.Helper()
@@ -149,9 +164,9 @@ func (mr *MockPkcs11MockRecorder) FindKeyByLabel(ctx, session, label interface{}
 }
 
 // GenerateKeyPairWithCurve mocks base method.
-func (m *MockPkcs11) GenerateKeyPairWithCurve(ctx context.Context, session pkcs11.SessionHandle, namedCurveOid []byte, pubkeyLabel, privkeyLabel string, canExport bool) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
+func (m *MockPkcs11) GenerateKeyPairWithCurve(ctx context.Context, session pkcs11.SessionHandle, mechanism *pkcs11.Mechanism, namedCurveOid []byte, keyType int, pubkeyLabel, privkeyLabel string, canExport bool) (pkcs11.ObjectHandle, pkcs11.ObjectHandle, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateKeyPairWithCurve", ctx, session, namedCurveOid, pubkeyLabel, privkeyLabel, canExport)
+	ret := m.ctrl.Call(m, "GenerateKeyPairWithCurve", ctx, session, mechanism, namedCurveOid, keyType, pubkeyLabel, privkeyLabel, canExport)
 	ret0, _ := ret[0].(pkcs11.ObjectHandle)
 	ret1, _ := ret[1].(pkcs11.ObjectHandle)
 	ret2, _ := ret[2].(error)
@@ -159,9 +174,9 @@ func (m *MockPkcs11) GenerateKeyPairWithCurve(ctx context.Context, session pkcs1
 }
 
 // GenerateKeyPairWithCurve indicates an expected call of GenerateKeyPairWithCurve.
-func (mr *MockPkcs11MockRecorder) GenerateKeyPairWithCurve(ctx, session, namedCurveOid, pubkeyLabel, privkeyLabel, canExport interface{}) *gomock.Call {
+func (mr *MockPkcs11MockRecorder) GenerateKeyPairWithCurve(ctx, session, mechanism, namedCurveOid, keyType, pubkeyLabel, privkeyLabel, canExport interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateKeyPairWithCurve", reflect.TypeOf((*MockPkcs11)(nil).GenerateKeyPairWithCurve), ctx, session, namedCurveOid, pubkeyLabel, privkeyLabel, canExport)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateKeyPairWithCurve", reflect.TypeOf((*MockPkcs11)(nil).GenerateKeyPairWithCurve), ctx, session, mechanism, namedCurveOid, keyType, pubkeyLabel, privkeyLabel, canExport)
 }
 
 // GenerateSeed mocks base method.
@@ -236,6 +251,21 @@ func (m *MockPkcs11) GetPublicKey(ctx context.Context, session pkcs11.SessionHan
 func (mr *MockPkcs11MockRecorder) GetPublicKey(ctx, session, pubkeyHandle interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublicKey", reflect.TypeOf((*MockPkcs11)(nil).GetPublicKey), ctx, session, pubkeyHandle)
+}
+
+// ImportEcKey mocks base method.
+func (m *MockPkcs11) ImportEcKey(ctx context.Context, session pkcs11.SessionHandle, privkey []byte, label string, canExport bool) (pkcs11.ObjectHandle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportEcKey", ctx, session, privkey, label, canExport)
+	ret0, _ := ret[0].(pkcs11.ObjectHandle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportEcKey indicates an expected call of ImportEcKey.
+func (mr *MockPkcs11MockRecorder) ImportEcKey(ctx, session, privkey, label, canExport interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportEcKey", reflect.TypeOf((*MockPkcs11)(nil).ImportEcKey), ctx, session, privkey, label, canExport)
 }
 
 // ImportSeed mocks base method.

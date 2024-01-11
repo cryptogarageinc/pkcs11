@@ -129,6 +129,11 @@ const CKA_BIP32_ID = (CKA_VENDOR_DEFINED | 0x1104)
 const CKA_BIP32_FINGERPRINT = (CKA_VENDOR_DEFINED | 0x1105)
 const CKA_BIP32_PARENT_FINGERPRINT = (CKA_VENDOR_DEFINED | 0x1106)
 
+// for Ed25519
+const CKK_EC_EDWARDS = (CKK_VENDOR_DEFINED | 0x00008003)
+const CKM_EC_EDWARDS_KEY_PAIR_GEN = (CKM_VENDOR_DEFINED | 0x00009040)
+const CKM_EDDSA = (CKM_VENDOR_DEFINED | 0x00009041)
+
 func (c *Ctx) DeriveBIP32MasterKeys(sh SessionHandle, basekey ObjectHandle, publicAttr []*Attribute, privateAttr []*Attribute) (ObjectHandle, ObjectHandle, error) {
 	var publicKey C.CK_OBJECT_HANDLE
 	var privateKey C.CK_OBJECT_HANDLE
