@@ -720,4 +720,6 @@ const (
 	CKF_EXCLUDE_CHALLENGE                = 0x00000008
 	CKF_EXCLUDE_PIN                      = 0x00000010
 	CKF_USER_FRIENDLY_OTP                = 0x00000020
+
+	CKR_ECC_POINT_INVALID = 0x8000002F
 )

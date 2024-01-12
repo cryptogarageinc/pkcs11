@@ -95,4 +95,7 @@ var strerror = map[uint]string{
 	0x000001B1: "CKR_NEXT_OTP",
 	0x00000200: "CKR_FUNCTION_REJECTED",
 	0x80000000: "CKR_VENDOR_DEFINED",
+
+	// for thales HSM
+	0x8000002F: "CKR_ECC_POINT_INVALID",
 }

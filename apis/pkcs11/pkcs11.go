@@ -104,6 +104,7 @@ type Pkcs11 interface {
 		session pkcs11.SessionHandle,
 		masterXprivHandle pkcs11.ObjectHandle,
 		path []uint32,
+		skLabel string,
 	) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error)
 	DeriveEcKey(
 		ctx context.Context,
@@ -537,6 +538,7 @@ func (p *pkcs11Api) DeriveKeyPairWithBIP32(
 	session pkcs11.SessionHandle,
 	masterXprivHandle pkcs11.ObjectHandle,
 	path []uint32,
+	skLabel string,
 ) (pubkeyHandle pkcs11.ObjectHandle, privkeyHandle pkcs11.ObjectHandle, err error) {
 	pubKeyAttr := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, false),
@@ -546,7 +548,8 @@ func (p *pkcs11Api) DeriveKeyPairWithBIP32(
 		pkcs11.NewAttribute(pkcs11.CKA_MODIFIABLE, false),
 	}
 	privKeyAttr := []*pkcs11.Attribute{
-		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, false),
+		pkcs11.NewAttribute(pkcs11.CKA_TOKEN, (skLabel != "")),
+		pkcs11.NewAttribute(pkcs11.CKA_LABEL, skLabel),
 		pkcs11.NewAttribute(pkcs11.CKA_PRIVATE, true),
 		pkcs11.NewAttribute(pkcs11.CKA_DECRYPT, true),
 		pkcs11.NewAttribute(pkcs11.CKA_SIGN, true),
@@ -572,7 +575,7 @@ func (p *pkcs11Api) DeriveEcKey(
 	valueLen int,
 ) (privkey []byte, err error) {
 	// sharedData := make([]byte, 32)
-	mechData := pkcs11.NewECDH1DeriveParams(pkcs11.CKD_NULL, nil, data)
+	mechData := pkcs11.NewECDH1DeriveParams(pkcs11.CKD_SHA256_KDF, nil, data)
 	mech := []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_ECDH1_DERIVE, mechData)}
 	logInfo(ctx, "call DeriveKey")
 

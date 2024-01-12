@@ -21,6 +21,10 @@ generate:
 	$(eval BIN:=$(abspath .bin))
 	GOBIN="$(BIN)" go generate ./...
 
+generate-local:
+	$(eval BIN:=$(abspath .bin))
+	PATH="${PATH}:${BIN}" GOBIN="$(BIN)" go generate ./...
+
 .PHONY: format
 format:
 	./.bin/goimports -w .
