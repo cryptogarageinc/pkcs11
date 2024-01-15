@@ -318,7 +318,7 @@ func (p *pkcs11Api) FindKeyByLabel(
 		// success
 	case 0:
 		err = errors.New("target is empty")
-		logError(ctx, "FindKeyByLabel", err)
+		logWarn(ctx, "FindKeyByLabel", err)
 		return 0, err
 	default:
 		err = errors.Wrapf(ErrLabelNotFound, "target is many, %d", len(handles))
