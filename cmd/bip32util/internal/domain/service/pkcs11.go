@@ -211,7 +211,7 @@ func (s *pkcs11Service) DeriveKeyPair(
 	if err != nil {
 		return 0, 0, err
 	}
-	pk, sk, err := s.pkcs11Api.DeriveKeyPair(ctx, s.session, masterXprivHandle, bip32Path)
+	pk, sk, err := s.pkcs11Api.DeriveKeyPairWithBIP32(ctx, s.session, masterXprivHandle, bip32Path, "")
 	if err != nil {
 		return 0, 0, err
 	}
@@ -227,9 +227,12 @@ func (s *pkcs11Service) GetPublicKeyByDeriveKey(
 	if err != nil {
 		return nil, err
 	}
-	pkHdl, _, err := s.DeriveKeyPair(ctx, s.session, xprivHdl, path)
-	if err != nil {
-		return nil, err
+	pkHdl := xprivHdl
+	if path != "" {
+		pkHdl, _, err = s.DeriveKeyPair(ctx, s.session, xprivHdl, path)
+		if err != nil {
+			return nil, err
+		}
 	}
 	pk, err := s.pkcs11Api.GetPublicKey(ctx, s.session, pkHdl)
 	if err != nil {
