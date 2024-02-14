@@ -4,10 +4,10 @@ go 1.21
 
 require (
 	github.com/caarlos0/env/v10 v10.0.0
-	github.com/cryptogarageinc/pkcs11 v1.1.0
+	github.com/cryptogarageinc/pkcs11 v1.3.2
 	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	go.uber.org/zap v1.26.0
 )
 
